@@ -16,11 +16,11 @@ interface DataGridViewProps {
 const HeaderRenderer = ({ column, emailColumn, onContextMenu }: any) => {
   return (
     <div
-      className="w-full h-full flex items-center px-4 bg-gray-100 font-semibold text-gray-700 select-none"
+      className="w-full h-full flex items-center px-4 bg-gray-100 font-semibold text-gray-700 select-none whitespace-nowrap"
       onContextMenu={(e) => onContextMenu(e, column.key)}
       title={column.originalName}
     >
-      <span className="truncate flex-1">
+      <span className="flex-1">
         {column.originalName}
       </span>
       {emailColumn === column.key && <span className="ml-2 flex-shrink-0">📧</span>}
@@ -41,8 +41,9 @@ export default function DataGridView({
 
     const keys = Object.keys(data[0]);
     return keys.map((key) => {
-      // Calculate width (generous 12px per char + 60px padding)
-      const calculatedWidth = Math.max(160, key.length * 12 + 60);
+      // Calculate width (more generous calculation to prevent truncation)
+      // Base padding 40px + approx 10px per char
+      const calculatedWidth = Math.max(200, key.length * 14 + 60);
 
       return {
         key,

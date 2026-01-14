@@ -90,17 +90,21 @@ body {
 
 /* Data grid header styling */
 .rdg-header-row .rdg-cell {
-  padding: 0 !important;
   /* Remove padding so our renderer can fill the cell */
   background-color: transparent !important;
   /* Transparent so our renderer provides the background */
   border-right: 1px solid #e5e7eb !important;
+  overflow: hidden !important;
+  position: relative !important;
+  z-index: 1 !important;
 }
 
 /* Ensure data cells don't overflow */
 .rdg-cell {
   /* No layout overrides here! Let RDG handle display/position */
   color: #374151;
+  overflow: hidden !important;
+  /* Enforce clipping for all cells */
 }
 
 
@@ -114,5 +118,18 @@ body {
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
   padding: 4px;
   z-index: 1000;
+  z-index: 1000;
   color: #1f2937;
+}
+
+/* Fix for transparent text editor overlapping */
+.rdg-text-editor {
+  background-color: white !important;
+  color: #1f2937 !important;
+  z-index: 1000 !important;
+}
+
+.rdg-text-editor:focus {
+  outline: 2px solid #3b82f6 !important;
+  outline-offset: -2px;
 }
