@@ -1,0 +1,8 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Outer white rounded square -->
+  <rect x="0" y="0" width="120" height="120" rx="28" fill="#FFFFFF"/>
+  <!-- Inner black rounded rectangle -->
+  <rect x="24" y="24" width="72" height="72" rx="16" fill="#000000"/>
+  <!-- Center white rounded rectangle -->
+  <rect x="44" y="44" width="32" height="32" rx="8" fill="#FFFFFF"/>
+</svg>

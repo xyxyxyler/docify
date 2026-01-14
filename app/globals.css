@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f9fafb;
+  --foreground: #1f2937;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* A4 Page Styling */
+.a4-page {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 20mm;
+  margin: 0 auto;
+  background: white;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/* TipTap Editor Styling */
+.ProseMirror {
+  outline: none;
+  min-height: 297mm;
+  color: #1f2937;
+}
+
+.ProseMirror p {
+  margin: 0.5em 0;
+  color: #1f2937;
+}
+
+/* Image styling in editor */
+.ProseMirror img {
+  cursor: pointer;
+  max-width: 100%;
+  height: auto;
+  transition: box-shadow 0.2s, outline 0.2s;
+}
+
+.ProseMirror img:hover {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.ProseMirror img.ProseMirror-selectednode {
+  outline: 3px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: #9ca3af;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* React Data Grid Styling */
+.rdg {
+  color: #1f2937 !important;
+  background: white !important;
+}
+
+.rdg-header-row {
+  background-color: #f3f4f6 !important;
+  color: #374151 !important;
+  font-weight: 600 !important;
+}
+
+.rdg-cell {
+  color: #1f2937 !important;
+  border-color: #e5e7eb !important;
+}
+
+.rdg-row:hover {
+  background-color: #f9fafb !important;
+}
+
+/* Context Menu Styling */
+.context-menu {
+  position: fixed;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  padding: 4px;
+  z-index: 1000;
+  color: #1f2937;
+}
