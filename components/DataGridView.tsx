@@ -5,28 +5,13 @@ import DataGrid from 'react-data-grid';
 import 'react-data-grid/lib/styles.css';
 import type { RowData } from '@/types';
 
+
 interface DataGridViewProps {
   data: RowData[];
   onDataChange: (data: RowData[]) => void;
   onSetEmailColumn: (columnKey: string) => void;
   emailColumn?: string;
 }
-// Custom Header Renderer to gain full control over styling
-// This component fills the RDG cell completely
-const HeaderRenderer = ({ column, emailColumn, onContextMenu }: any) => {
-  return (
-    <div
-      className="w-full h-full flex items-center justify-start px-2 bg-gray-100 font-semibold text-gray-700 select-none whitespace-nowrap overflow-hidden"
-      onContextMenu={(e) => onContextMenu(e, column.key)}
-      title={column.originalName}
-    >
-      <span className="flex-1 flex-shrink-0">
-        {column.originalName}
-      </span>
-      {emailColumn === column.key && <span className="ml-2 flex-shrink-0">📧</span>}
-    </div>
-  );
-};
 
 export default function DataGridView({
   data,
@@ -41,26 +26,17 @@ export default function DataGridView({
 
     const keys = Object.keys(data[0]);
     return keys.map((key) => {
-      // Calculate width (more generous calculation to prevent truncation)
-      // Base padding 40px + approx 10px per char
-      const calculatedWidth = Math.max(250, key.length * 16 + 60);
+      // More generous width calculation
+      const calculatedWidth = Math.max(150, key.length * 10 + 100);
 
       return {
         key,
-        name: key,
-        originalName: key,
+        name: emailColumn === key ? `${key} 📧` : key,
         editable: true,
         resizable: true,
         width: calculatedWidth,
-        minWidth: calculatedWidth, // Strictly prevent shrinking below calculated width
-        // Header Renderer handles specific styling (bg, color, alignment)
-        headerRenderer: (props: any) => (
-          <HeaderRenderer
-            column={{ ...props.column, originalName: key }}
-            emailColumn={emailColumn}
-            onContextMenu={handleContextMenu}
-          />
-        )
+        headerCellClass: 'rdg-header-cell-custom',
+        cellClass: 'rdg-cell-custom'
       };
     });
   }, [data, emailColumn]);
@@ -70,7 +46,19 @@ export default function DataGridView({
     onDataChange(newRows);
   };
 
-  const handleContextMenu = (e: React.MouseEvent, columnKey: string) => {
+  const handleHeaderContextMenu = (e: React.MouseEvent) => {
+    // Find the column header that was clicked
+    const target = e.target as HTMLElement;
+    const headerCell = target.closest('.rdg-cell');
+    if (!headerCell) return;
+
+    const columnIndex = Array.from(headerCell.parentElement?.children || []).indexOf(headerCell);
+    if (columnIndex === -1) return;
+
+    const keys = Object.keys(data[0]);
+    const columnKey = keys[columnIndex];
+    if (!columnKey) return;
+
     e.preventDefault();
 
     const menu = document.createElement('div');
@@ -112,7 +100,7 @@ export default function DataGridView({
       <div className="mb-2 text-sm text-gray-600">
         Right-click on a column header to set it as the email recipient field
       </div>
-      <div className="h-[calc(100%-2rem)]">
+      <div className="h-[calc(100%-2rem)]" onContextMenu={handleHeaderContextMenu}>
         <DataGrid
           columns={columns}
           rows={rows}
