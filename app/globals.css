@@ -94,9 +94,6 @@ body {
   background-color: transparent !important;
   /* Transparent so our renderer provides the background */
   border-right: 1px solid #e5e7eb !important;
-  overflow: hidden !important;
-  position: relative !important;
-  z-index: 1 !important;
 }
 
 /* Ensure data cells don't overflow */

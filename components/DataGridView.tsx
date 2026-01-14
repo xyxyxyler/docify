@@ -16,7 +16,7 @@ interface DataGridViewProps {
 const HeaderRenderer = ({ column, emailColumn, onContextMenu }: any) => {
   return (
     <div
-      className="w-full h-full flex items-center px-4 bg-gray-100 font-semibold text-gray-700 select-none whitespace-nowrap"
+      className="w-full h-full flex items-center justify-start px-4 bg-gray-100 font-semibold text-gray-700 select-none whitespace-nowrap overflow-hidden"
       onContextMenu={(e) => onContextMenu(e, column.key)}
       title={column.originalName}
     >
