@@ -107,7 +107,8 @@ async function renderHtmlToPdf(
         const currentLineHeight = baseLineHeight * inheritedLineHeight;
         const lines = pdf.splitTextToSize(text, maxWidth);
         lines.forEach((line: string) => {
-          if (y > 270) {
+          // Check BEFORE adding content if we need a new page
+          if (y + currentLineHeight > 270) {
             pdf.addPage();
             y = 20;
           }
@@ -181,27 +182,33 @@ async function renderHtmlToPdf(
         const bullet = el.parentElement?.tagName.toLowerCase() === 'ol'
           ? `${Array.from(el.parentElement.children).indexOf(el) + 1}. `
           : '• ';
-        pdf.text(bullet, startX, y);
         const liText = htmlToPlainText(el.innerHTML);
         const liLines = pdf.splitTextToSize(liText, maxWidth - 10);
         liLines.forEach((line: string, idx: number) => {
-          if (y > 270) {
+          // Check BEFORE adding content if we need a new page
+          if (y + baseLineHeight > 270) {
             pdf.addPage();
             y = 20;
           }
-          pdf.text(line, startX + (idx === 0 ? 8 : 8), y);
+          if (idx === 0) {
+            pdf.text(bullet, startX, y);
+          }
+          pdf.text(line, startX + 8, y);
           y += baseLineHeight;
         });
         return; // Don't process children, we handled the text
       case 'blockquote':
         pdf.setTextColor(100);
-        pdf.text('|', startX, y);
         const bqText = htmlToPlainText(el.innerHTML);
         const bqLines = pdf.splitTextToSize(bqText, maxWidth - 10);
-        bqLines.forEach((line: string) => {
-          if (y > 270) {
+        bqLines.forEach((line: string, idx: number) => {
+          // Check BEFORE adding content if we need a new page
+          if (y + baseLineHeight > 270) {
             pdf.addPage();
             y = 20;
+          }
+          if (idx === 0 || y === 20) {
+            pdf.text('|', startX, y);
           }
           pdf.text(line, startX + 5, y);
           y += baseLineHeight;
@@ -235,8 +242,9 @@ async function renderHtmlToPdf(
             imgWidthMm *= scale;
           }
 
-          // Check if image fits on current page
-          if (y + imgHeightMm > 270) {
+          // Check BEFORE adding image if it fits on current page
+          // Add small buffer (5mm) to ensure image doesn't touch bottom margin
+          if (y + imgHeightMm + 5 > 270) {
             pdf.addPage();
             y = 20;
           }

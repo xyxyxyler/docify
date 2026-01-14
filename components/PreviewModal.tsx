@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { replaceVariables } from '@/lib/utils';
 import type { RowData } from '@/types';
@@ -24,11 +24,12 @@ export default function PreviewModal({
   const [pages, setPages] = useState<string[]>([]);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  if (!isOpen || data.length === 0) return null;
+  const currentRow = data.length > 0 ? data[currentIndex] : null;
+  const previewHtml = useMemo(() => {
+    return currentRow ? replaceVariables(templateHtml, currentRow) : '';
+  }, [templateHtml, currentRow]);
 
-  const currentRow = data[currentIndex];
-  const previewHtml = replaceVariables(templateHtml, currentRow);
-  const recipientEmail = emailColumn ? currentRow[emailColumn] : null;
+  const recipientEmail = emailColumn && currentRow ? currentRow[emailColumn] : null;
 
   const goToPrevious = () => {
     setCurrentIndex((prev) => (prev > 0 ? prev - 1 : data.length - 1));
@@ -40,7 +41,12 @@ export default function PreviewModal({
 
   // Split content into pages
   useEffect(() => {
-    if (!contentRef.current) return;
+    if (!isOpen || !previewHtml) {
+      if (pages.length > 0) {
+        setPages([]);
+      }
+      return;
+    }
 
     // Create a temporary container to measure content
     const tempContainer = document.createElement('div');
@@ -70,6 +76,8 @@ export default function PreviewModal({
       const clone = child.cloneNode(true) as HTMLElement;
       const childHeight = child.offsetHeight;
 
+      // Check BEFORE adding if the element will exceed page height
+      // This prevents content from being cut off at page boundaries
       if (currentHeight + childHeight > maxContentHeight && currentPageContent.length > 0) {
         // Page is full, save current page and start new one
         const pageDiv = document.createElement('div');
@@ -91,8 +99,18 @@ export default function PreviewModal({
     }
 
     document.body.removeChild(tempContainer);
-    setPages(tempPages.length > 0 ? tempPages : [previewHtml]);
-  }, [previewHtml]);
+
+    const newPages = tempPages.length > 0 ? tempPages : [previewHtml];
+
+    // Only update if pages actually changed
+    setPages(prevPages => {
+      if (prevPages.length !== newPages.length) return newPages;
+      if (prevPages.some((page, i) => page !== newPages[i])) return newPages;
+      return prevPages;
+    });
+  }, [previewHtml, isOpen]);
+
+  if (!isOpen || data.length === 0) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
