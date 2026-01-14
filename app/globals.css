@@ -22,17 +22,19 @@ body {
 /* A4 Page Styling */
 .a4-page {
   width: 210mm;
-  min-height: 297mm;
+  height: 297mm;
   padding: 20mm;
   margin: 0 auto;
   background: white;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* TipTap Editor Styling */
 .ProseMirror {
   outline: none;
-  min-height: 297mm;
+  min-height: 100%;
   color: #1f2937;
 }
 
