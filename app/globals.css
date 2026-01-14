@@ -88,6 +88,14 @@ body {
   background-color: #f9fafb !important;
 }
 
+/* Fix column header truncation */
+.rdg-header-row .rdg-cell {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+
 /* Context Menu Styling */
 .context-menu {
   position: fixed;
