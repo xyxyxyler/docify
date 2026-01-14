@@ -500,19 +500,22 @@ export default function RichTextEditor({
           title="Font Size"
         >
           <option value="">Size</option>
-          <option value="8px">8px</option>
-          <option value="10px">10px</option>
-          <option value="12px">12px</option>
-          <option value="14px">14px</option>
-          <option value="16px">16px</option>
-          <option value="18px">18px</option>
-          <option value="20px">20px</option>
-          <option value="24px">24px</option>
-          <option value="28px">28px</option>
-          <option value="32px">32px</option>
-          <option value="36px">36px</option>
-          <option value="48px">48px</option>
-          <option value="72px">72px</option>
+          <option value="8pt">8</option>
+          <option value="9pt">9</option>
+          <option value="10pt">10</option>
+          <option value="11pt">11</option>
+          <option value="12pt">12</option>
+          <option value="14pt">14</option>
+          <option value="16pt">16</option>
+          <option value="18pt">18</option>
+          <option value="20pt">20</option>
+          <option value="22pt">22</option>
+          <option value="24pt">24</option>
+          <option value="26pt">26</option>
+          <option value="28pt">28</option>
+          <option value="36pt">36</option>
+          <option value="48pt">48</option>
+          <option value="72pt">72</option>
         </select>
 
         {/* Line Height Dropdown */}
