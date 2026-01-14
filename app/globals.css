@@ -67,41 +67,10 @@ body {
   pointer-events: none;
 }
 
-/* React Data Grid Styling */
-.rdg {
-  color: #1f2937 !important;
-  background: white !important;
+/* Custom Data Grid Table Styling */
+table {
+  border-collapse: collapse;
 }
-
-.rdg-header-row {
-  background-color: #f3f4f6 !important;
-  color: #374151 !important;
-  font-weight: 600 !important;
-}
-
-.rdg-cell {
-  color: #1f2937 !important;
-  border-color: #e5e7eb !important;
-}
-
-.rdg-row:hover {
-  background-color: #f9fafb !important;
-}
-
-/* Data grid header styling */
-.rdg-header-row .rdg-cell {
-  background-color: #f3f4f6 !important;
-  font-weight: 600 !important;
-  padding: 0 8px !important;
-  border-right: 1px solid #e5e7eb !important;
-}
-
-/* Ensure data cells don't overflow */
-.rdg-cell {
-  color: #374151;
-}
-
-
 
 /* Context Menu Styling */
 .context-menu {
@@ -112,18 +81,5 @@ body {
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
   padding: 4px;
   z-index: 1000;
-  z-index: 1000;
   color: #1f2937;
-}
-
-/* Fix for transparent text editor overlapping */
-.rdg-text-editor {
-  background-color: white !important;
-  color: #1f2937 !important;
-  z-index: 1000 !important;
-}
-
-.rdg-text-editor:focus {
-  outline: 2px solid #3b82f6 !important;
-  outline-offset: -2px;
 }
