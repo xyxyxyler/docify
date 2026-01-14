@@ -16,17 +16,15 @@ interface DataGridViewProps {
 const HeaderRenderer = ({ column, emailColumn, onContextMenu }: any) => {
   return (
     <div
-      className="w-full h-full flex items-center px-3 bg-gray-100 font-semibold text-gray-700"
+      className="h-full flex items-center px-4 bg-gray-100 font-semibold text-gray-700 select-none"
       onContextMenu={(e) => onContextMenu(e, column.key)}
-      title={column.originalName} // Show full name on hover
-      style={{
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis'
-      }}
+      title={column.originalName}
+      style={{ width: '100%' }}
     >
-      <span className="truncate">{column.originalName}</span>
-      {emailColumn === column.key && <span className="ml-1 flex-shrink-0">📧</span>}
+      <span className="block truncate w-full">
+        {column.originalName}
+      </span>
+      {emailColumn === column.key && <span className="ml-2 flex-shrink-0">📧</span>}
     </div>
   );
 };
@@ -45,16 +43,16 @@ export default function DataGridView({
     const keys = Object.keys(data[0]);
     return keys.map((key) => {
       // Calculate width (generous 12px per char + 60px padding)
-      // Min width 150px to prevent squashing
-      const calculatedWidth = Math.max(150, key.length * 12 + 60);
+      const calculatedWidth = Math.max(160, key.length * 12 + 60);
 
       return {
         key,
-        name: key, // Keep clean name for data
-        originalName: key, // Pass for renderer
+        name: key,
+        originalName: key,
         editable: true,
         resizable: true,
         width: calculatedWidth,
+        minWidth: calculatedWidth, // Strictly enforce minimum width
         headerRenderer: (props: any) => (
           <HeaderRenderer
             column={{ ...props.column, originalName: key }}
