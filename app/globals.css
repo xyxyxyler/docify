@@ -90,11 +90,15 @@ body {
 
 /* Data grid header styling */
 .rdg-header-row .rdg-cell {
+  background-color: #f3f4f6 !important;
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
-  padding: 8px 12px !important;
+  padding: 0 12px !important;
   font-weight: 600 !important;
+  display: flex !important;
+  align-items: center !important;
+  border-right: 1px solid #e5e7eb !important;
 }
 
 /* Ensure data cells don't overflow */
@@ -102,6 +106,9 @@ body {
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 12px !important;
 }
 
 

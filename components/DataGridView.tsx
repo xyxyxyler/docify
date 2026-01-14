@@ -26,8 +26,8 @@ export default function DataGridView({
     const keys = Object.keys(data[0]);
     return keys.map((key) => {
       const headerText = key + (emailColumn === key ? ' 📧' : '');
-      // Calculate width based on header text length (roughly 10px per character + padding)
-      const calculatedWidth = Math.max(120, headerText.length * 10 + 40);
+      // Calculate width based on header text length (generous 12px per character + 50px padding)
+      const calculatedWidth = Math.max(150, headerText.length * 12 + 50);
 
       return {
         key,
