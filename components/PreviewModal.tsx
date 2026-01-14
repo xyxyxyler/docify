@@ -94,28 +94,42 @@ export default function PreviewModal({
 
         {/* Preview Content */}
         <div className="flex-1 overflow-auto p-6 bg-gray-100">
-          <div className="mx-auto bg-white shadow-lg" style={{ width: '210mm', minHeight: '297mm', padding: '20mm' }}>
+          <div className="mx-auto space-y-6">
             <div
-              className="prose max-w-none preview-content"
-              style={{
-                whiteSpace: 'pre-wrap',
-              }}
-              dangerouslySetInnerHTML={{ __html: previewHtml }}
-            />
-            <style jsx global>{`
-              .preview-content p:empty {
-                min-height: 1.5em;
-              }
-              .preview-content p {
-                margin-bottom: 1em;
-              }
-              .preview-content br {
-                display: block;
-                content: "";
-                margin-top: 0.5em;
-              }
-            `}</style>
+              className="bg-white shadow-lg page-container"
+              style={{ width: '210mm', height: '297mm', padding: '20mm', overflow: 'hidden' }}
+            >
+              <div
+                className="prose max-w-none preview-content"
+                style={{
+                  whiteSpace: 'pre-wrap',
+                }}
+                dangerouslySetInnerHTML={{ __html: previewHtml }}
+              />
+            </div>
           </div>
+          <style jsx global>{`
+            .preview-content p:empty {
+              min-height: 1.5em;
+            }
+            .preview-content p {
+              margin-bottom: 1em;
+            }
+            .preview-content br {
+              display: block;
+              content: "";
+              margin-top: 0.5em;
+            }
+            
+            /* Page break styles for print and preview */
+            @media print {
+              .page-container {
+                page-break-after: always;
+                height: 297mm;
+                overflow: visible;
+              }
+            }
+          `}</style>
         </div>
 
         {/* Footer */}
