@@ -531,11 +531,11 @@ export default function RichTextEditor({
           className="h-8 px-2 text-sm border border-gray-300 rounded bg-white hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500"
           title="Line Spacing"
         >
-          <option value="">Line</option>
-          <option value="1.0">1.0</option>
+          <option value="">Normal</option>
+          <option value="1.0">Single</option>
           <option value="1.15">1.15</option>
           <option value="1.5">1.5</option>
-          <option value="2.0">2.0</option>
+          <option value="2.0">Double</option>
           <option value="2.5">2.5</option>
           <option value="3.0">3.0</option>
         </select>
