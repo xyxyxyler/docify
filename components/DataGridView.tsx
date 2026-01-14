@@ -11,6 +11,22 @@ interface DataGridViewProps {
   onSetEmailColumn: (columnKey: string) => void;
   emailColumn?: string;
 }
+// Custom Header Renderer to gain full control over styling
+// This component fills the RDG cell completely
+const HeaderRenderer = ({ column, emailColumn, onContextMenu }: any) => {
+  return (
+    <div
+      className="w-full h-full flex items-center px-4 bg-gray-100 font-semibold text-gray-700 select-none"
+      onContextMenu={(e) => onContextMenu(e, column.key)}
+      title={column.originalName}
+    >
+      <span className="truncate flex-1">
+        {column.originalName}
+      </span>
+      {emailColumn === column.key && <span className="ml-2 flex-shrink-0">📧</span>}
+    </div>
+  );
+};
 
 export default function DataGridView({
   data,
