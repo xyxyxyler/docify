@@ -26,17 +26,17 @@ async function loadImage(src: string): Promise<{ data: string; width: number; he
         resolve(null);
         return;
       }
-      
+
       // Fill with white background first (fixes PNG transparency issue)
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
+
       // Draw image on top of white background
       ctx.drawImage(img, 0, 0);
-      
+
       // Always output as JPEG to avoid transparency issues and reduce file size
       const data = canvas.toDataURL('image/jpeg', 0.9);
-      
+
       resolve({
         data,
         width: img.width,
@@ -60,25 +60,51 @@ function collectImages(html: string): string[] {
   return srcs;
 }
 
+// Parse inline styles from element
+function parseInlineStyles(el: Element): { fontSize?: number; lineHeight?: number } {
+  const style = el.getAttribute('style');
+  if (!style) return {};
+
+  const result: { fontSize?: number; lineHeight?: number } = {};
+
+  // Parse font-size (supports pt and px)
+  const fontSizeMatch = style.match(/font-size:\s*(\d+(?:\.\d+)?)(pt|px)/);
+  if (fontSizeMatch) {
+    const value = parseFloat(fontSizeMatch[1]);
+    const unit = fontSizeMatch[2];
+    // Convert px to pt if needed (1pt = 1.333px at 96 DPI)
+    result.fontSize = unit === 'px' ? value * 0.75 : value;
+  }
+
+  // Parse line-height (unitless multiplier)
+  const lineHeightMatch = style.match(/line-height:\s*(\d+(?:\.\d+)?)/);
+  if (lineHeightMatch) {
+    result.lineHeight = parseFloat(lineHeightMatch[1]);
+  }
+
+  return result;
+}
+
 // Parse HTML and render to PDF with basic formatting
 async function renderHtmlToPdf(
-  pdf: jsPDF, 
-  html: string, 
-  startX: number, 
-  startY: number, 
+  pdf: jsPDF,
+  html: string,
+  startX: number,
+  startY: number,
   maxWidth: number,
   imageCache: Map<string, { data: string; width: number; height: number }>
 ): Promise<number> {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   let y = startY;
-  const lineHeight = 7;
+  const baseLineHeight = 7;
   const paragraphSpacing = 4;
   const headingSpacing = 8;
-  
-  async function processNode(node: Node): Promise<void> {
+
+  async function processNode(node: Node, inheritedLineHeight: number = 1.0): Promise<void> {
     if (node.nodeType === Node.TEXT_NODE) {
       const text = node.textContent?.trim();
       if (text) {
+        const currentLineHeight = baseLineHeight * inheritedLineHeight;
         const lines = pdf.splitTextToSize(text, maxWidth);
         lines.forEach((line: string) => {
           if (y > 270) {
@@ -86,52 +112,60 @@ async function renderHtmlToPdf(
             y = 20;
           }
           pdf.text(line, startX, y);
-          y += lineHeight;
+          y += currentLineHeight;
         });
       }
       return;
     }
 
     if (node.nodeType !== Node.ELEMENT_NODE) return;
-    
+
     const el = node as Element;
     const tagName = el.tagName.toLowerCase();
-    
+
+    // Parse inline styles
+    const inlineStyles = parseInlineStyles(el);
+    const customFontSize = inlineStyles.fontSize;
+    const customLineHeight = inlineStyles.lineHeight || inheritedLineHeight;
+
     // Handle different elements
     switch (tagName) {
       case 'h1':
         y += headingSpacing;
-        pdf.setFontSize(24);
+        pdf.setFontSize(customFontSize || 24);
         pdf.setFont('helvetica', 'bold');
         break;
       case 'h2':
         y += headingSpacing;
-        pdf.setFontSize(18);
+        pdf.setFontSize(customFontSize || 18);
         pdf.setFont('helvetica', 'bold');
         break;
       case 'h3':
         y += headingSpacing / 2;
-        pdf.setFontSize(14);
+        pdf.setFontSize(customFontSize || 14);
         pdf.setFont('helvetica', 'bold');
         break;
       case 'strong':
       case 'b':
         pdf.setFont('helvetica', 'bold');
+        if (customFontSize) pdf.setFontSize(customFontSize);
         break;
       case 'em':
       case 'i':
         pdf.setFont('helvetica', 'italic');
+        if (customFontSize) pdf.setFontSize(customFontSize);
         break;
       case 'u':
         // Underline handled separately
+        if (customFontSize) pdf.setFontSize(customFontSize);
         break;
       case 'p':
         y += paragraphSpacing;
-        pdf.setFontSize(12);
+        pdf.setFontSize(customFontSize || 12);
         pdf.setFont('helvetica', 'normal');
         break;
       case 'br':
-        y += lineHeight;
+        y += baseLineHeight;
         return;
       case 'hr':
         y += 5;
@@ -144,7 +178,7 @@ async function renderHtmlToPdf(
         y += paragraphSpacing / 2;
         break;
       case 'li':
-        const bullet = el.parentElement?.tagName.toLowerCase() === 'ol' 
+        const bullet = el.parentElement?.tagName.toLowerCase() === 'ol'
           ? `${Array.from(el.parentElement.children).indexOf(el) + 1}. `
           : '• ';
         pdf.text(bullet, startX, y);
@@ -156,7 +190,7 @@ async function renderHtmlToPdf(
             y = 20;
           }
           pdf.text(line, startX + (idx === 0 ? 8 : 8), y);
-          y += lineHeight;
+          y += baseLineHeight;
         });
         return; // Don't process children, we handled the text
       case 'blockquote':
@@ -170,7 +204,7 @@ async function renderHtmlToPdf(
             y = 20;
           }
           pdf.text(line, startX + 5, y);
-          y += lineHeight;
+          y += baseLineHeight;
         });
         pdf.setTextColor(0);
         y += paragraphSpacing;
@@ -179,20 +213,20 @@ async function renderHtmlToPdf(
         const src = el.getAttribute('src');
         if (src && imageCache.has(src)) {
           const imgData = imageCache.get(src)!;
-          
+
           // Calculate dimensions to fit within maxWidth
           // Convert pixels to mm (assuming 96 DPI: 1 inch = 25.4mm, 96px = 25.4mm)
           const pxToMm = 25.4 / 96;
           let imgWidthMm = imgData.width * pxToMm;
           let imgHeightMm = imgData.height * pxToMm;
-          
+
           // Scale down if too wide
           if (imgWidthMm > maxWidth) {
             const scale = maxWidth / imgWidthMm;
             imgWidthMm = maxWidth;
             imgHeightMm *= scale;
           }
-          
+
           // Max height constraint (half page)
           const maxHeight = 120;
           if (imgHeightMm > maxHeight) {
@@ -200,13 +234,13 @@ async function renderHtmlToPdf(
             imgHeightMm = maxHeight;
             imgWidthMm *= scale;
           }
-          
+
           // Check if image fits on current page
           if (y + imgHeightMm > 270) {
             pdf.addPage();
             y = 20;
           }
-          
+
           // Add image to PDF (always JPEG since we convert in loadImage)
           try {
             pdf.addImage(imgData.data, 'JPEG', startX, y, imgWidthMm, imgHeightMm);
@@ -217,28 +251,28 @@ async function renderHtmlToPdf(
         }
         return;
     }
-    
+
     // Process children
     for (const child of Array.from(node.childNodes)) {
       await processNode(child);
     }
-    
+
     // Reset after certain elements
     if (['h1', 'h2', 'h3', 'p', 'strong', 'b', 'em', 'i'].includes(tagName)) {
       pdf.setFontSize(12);
       pdf.setFont('helvetica', 'normal');
     }
-    
+
     if (['h1', 'h2', 'h3', 'p', 'ul', 'ol', 'blockquote'].includes(tagName)) {
       y += paragraphSpacing;
     }
   }
-  
+
   // Process body content
   for (const child of Array.from(doc.body.childNodes)) {
     await processNode(child);
   }
-  
+
   return y;
 }
 
@@ -256,7 +290,7 @@ export function usePDFGenerator() {
     // Pre-load all images
     const imageSrcs = collectImages(filledHtml);
     const imageCache = new Map<string, { data: string; width: number; height: number }>();
-    
+
     for (const src of imageSrcs) {
       const imgData = await loadImage(src);
       if (imgData) {
@@ -279,7 +313,7 @@ export function usePDFGenerator() {
     // Render HTML content to PDF
     const margin = 20;
     const contentWidth = (format === 'a4' ? 210 : 216) - (margin * 2);
-    
+
     await renderHtmlToPdf(pdf, filledHtml, margin, margin, contentWidth, imageCache);
 
     // Return as blob
