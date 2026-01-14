@@ -27,8 +27,8 @@ body {
   margin: 0 auto;
   background: white;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
+  /* Enforce height limit - no scrolling within page */
 }
 
 /* TipTap Editor Styling */
