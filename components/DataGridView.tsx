@@ -12,6 +12,25 @@ interface DataGridViewProps {
   emailColumn?: string;
 }
 
+// Custom Header Renderer to gain full control over styling
+const HeaderRenderer = ({ column, emailColumn, onContextMenu }: any) => {
+  return (
+    <div
+      className="w-full h-full flex items-center px-3 bg-gray-100 font-semibold text-gray-700"
+      onContextMenu={(e) => onContextMenu(e, column.key)}
+      title={column.originalName} // Show full name on hover
+      style={{
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis'
+      }}
+    >
+      <span className="truncate">{column.originalName}</span>
+      {emailColumn === column.key && <span className="ml-1 flex-shrink-0">📧</span>}
+    </div>
+  );
+};
+
 export default function DataGridView({
   data,
   onDataChange,
@@ -25,16 +44,24 @@ export default function DataGridView({
 
     const keys = Object.keys(data[0]);
     return keys.map((key) => {
-      const headerText = key + (emailColumn === key ? ' 📧' : '');
-      // Calculate width based on header text length (generous 12px per character + 50px padding)
-      const calculatedWidth = Math.max(150, headerText.length * 12 + 50);
+      // Calculate width (generous 12px per char + 60px padding)
+      // Min width 150px to prevent squashing
+      const calculatedWidth = Math.max(150, key.length * 12 + 60);
 
       return {
         key,
-        name: headerText,
+        name: key, // Keep clean name for data
+        originalName: key, // Pass for renderer
         editable: true,
         resizable: true,
-        width: calculatedWidth, // Set actual width, not just minWidth
+        width: calculatedWidth,
+        headerRenderer: (props: any) => (
+          <HeaderRenderer
+            column={{ ...props.column, originalName: key }}
+            emailColumn={emailColumn}
+            onContextMenu={handleContextMenu}
+          />
+        )
       };
     });
   }, [data, emailColumn]);
@@ -88,19 +115,7 @@ export default function DataGridView({
       </div>
       <div className="h-[calc(100%-2rem)]">
         <DataGrid
-          columns={columns.map(col => ({
-            ...col,
-            headerCellClass: 'cursor-context-menu',
-            headerRenderer: (props: any) => (
-              <div
-                onContextMenu={(e) => handleContextMenu(e, col.key)}
-                className="flex items-center h-full px-2"
-                title={col.name}
-              >
-                <span className="truncate">{props.column.name}</span>
-              </div>
-            ),
-          }))}
+          columns={columns}
           rows={rows}
           onRowsChange={handleRowsChange}
           className="rdg-light h-full"

@@ -90,26 +90,19 @@ body {
 
 /* Data grid header styling */
 .rdg-header-row .rdg-cell {
-  background-color: #f3f4f6 !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  padding: 0 12px !important;
-  font-weight: 600 !important;
-  display: flex !important;
-  align-items: center !important;
+  padding: 0 !important;
+  /* Allow custom renderer to fill space */
+  background-color: transparent !important;
+  /* Let renderer handle bg */
   border-right: 1px solid #e5e7eb !important;
 }
 
 /* Ensure data cells don't overflow */
 .rdg-cell {
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  display: flex !important;
-  align-items: center !important;
-  padding: 0 12px !important;
+  position: relative !important;
+  /* Ensure proper positioning context */
 }
+
 
 
 /* Context Menu Styling */
