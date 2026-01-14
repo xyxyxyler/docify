@@ -90,20 +90,17 @@ body {
 
 /* Data grid header styling */
 .rdg-header-row .rdg-cell {
-  background-color: #f3f4f6 !important;
-  color: #374151 !important;
-  font-weight: 600 !important;
-  padding: 0 12px !important;
-  display: flex !important;
-  align-items: center !important;
+  padding: 0 !important;
+  /* Remove padding so our renderer can fill the cell */
+  background-color: transparent !important;
+  /* Transparent so our renderer provides the background */
   border-right: 1px solid #e5e7eb !important;
-  white-space: nowrap !important;
 }
 
 /* Ensure data cells don't overflow */
 .rdg-cell {
-  position: relative !important;
-  /* Ensure proper positioning context */
+  /* No layout overrides here! Let RDG handle display/position */
+  color: #374151;
 }
 
 

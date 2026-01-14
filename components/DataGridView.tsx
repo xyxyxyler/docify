@@ -25,17 +25,24 @@ export default function DataGridView({
 
     const keys = Object.keys(data[0]);
     return keys.map((key) => {
-      // Calculate width strictly based on text length
-      const headerText = key + (emailColumn === key ? ' 📧' : '');
-      const calculatedWidth = Math.max(150, headerText.length * 12 + 40);
+      // Calculate width (generous 12px per char + 60px padding)
+      const calculatedWidth = Math.max(160, key.length * 12 + 60);
 
       return {
         key,
-        name: headerText,
+        name: key,
+        originalName: key,
         editable: true,
         resizable: true,
         width: calculatedWidth,
-        minWidth: calculatedWidth,
+        // Header Renderer handles specific styling (bg, color, alignment)
+        headerRenderer: (props: any) => (
+          <HeaderRenderer
+            column={{ ...props.column, originalName: key }}
+            emailColumn={emailColumn}
+            onContextMenu={handleContextMenu}
+          />
+        )
       };
     });
   }, [data, emailColumn]);
