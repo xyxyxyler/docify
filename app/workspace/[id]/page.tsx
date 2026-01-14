@@ -265,7 +265,7 @@ export default function WorkspacePage() {
           </div>
 
           {/* Right Section - Action Buttons */}
-          <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto overflow-x-auto">
+          <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto flex-wrap">
             {/* View Mode Toggle - Hidden on mobile */}
             <div className="hidden md:flex items-center bg-gray-100 rounded-xl p-1 gap-1 flex-shrink-0">
               <button
@@ -300,9 +300,9 @@ export default function WorkspacePage() {
               </button>
             </div>
 
-            <div className="hidden md:block h-8 w-px bg-gray-200" />
+            <div className="hidden md:block h-8 w-px bg-gray-200 flex-shrink-0" />
 
-            {/* Action Buttons - Responsive sizing */}
+            {/* Action Buttons - Wrap on overflow */}
             <button
               onClick={() => handleActionWithLimitCheck('preview')}
               disabled={gridData.length === 0 || !templateHtml}
@@ -323,11 +323,11 @@ export default function WorkspacePage() {
 
             <button
               disabled={true}
-              className="hidden sm:flex items-center gap-2 px-4 py-2.5 bg-gray-200 text-gray-400 rounded-xl font-medium cursor-not-allowed flex-shrink-0"
+              className="hidden lg:flex items-center gap-2 px-4 py-2.5 bg-gray-200 text-gray-400 rounded-xl font-medium cursor-not-allowed flex-shrink-0"
               title="Coming Soon"
             >
               <Mail className="w-4 h-4" />
-              <span className="hidden sm:inline">Send</span>
+              <span>Send</span>
               <span className="text-[10px] bg-gray-300 text-gray-500 px-1.5 py-0.5 rounded-md font-medium">Soon</span>
             </button>
 
