@@ -26,9 +26,27 @@ body {
   padding: 20mm;
   margin: 0 auto;
   background: white;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   /* Enforce height limit - no scrolling within page */
+  position: relative;
+}
+
+/* Visual page boundary indicator for editor */
+.a4-page::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 20mm;
+  right: 20mm;
+  height: 1px;
+  background: linear-gradient(to right,
+      transparent 0%,
+      rgba(200, 200, 200, 0.5) 10%,
+      rgba(200, 200, 200, 0.8) 50%,
+      rgba(200, 200, 200, 0.5) 90%,
+      transparent 100%);
+  pointer-events: none;
 }
 
 /* TipTap Editor Styling */

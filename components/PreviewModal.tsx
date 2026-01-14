@@ -175,18 +175,21 @@ export default function PreviewModal({
 
         {/* Preview Content */}
         <div className="flex-1 overflow-auto p-6 bg-gray-100">
-          <div ref={contentRef} className="mx-auto space-y-6">
+          <div ref={contentRef} className="mx-auto">
             {pages.map((pageContent, index) => (
               <div
                 key={index}
-                className="bg-white shadow-lg page-container"
+                className="bg-white page-container"
                 style={{
                   width: '210mm',
                   minHeight: '297mm',
                   maxHeight: '297mm',
                   padding: '20mm',
                   overflow: 'hidden',
-                  pageBreakAfter: 'always'
+                  pageBreakAfter: 'always',
+                  marginBottom: index < pages.length - 1 ? '20px' : '0',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.1), 0 8px 0 -4px rgba(0, 0, 0, 0.05)',
+                  border: '1px solid rgba(0, 0, 0, 0.08)'
                 }}
               >
                 <div
