@@ -12,23 +12,6 @@ interface DataGridViewProps {
   emailColumn?: string;
 }
 
-// Custom Header Renderer to gain full control over styling
-const HeaderRenderer = ({ column, emailColumn, onContextMenu }: any) => {
-  return (
-    <div
-      className="h-full flex items-center px-4 bg-gray-100 font-semibold text-gray-700 select-none"
-      onContextMenu={(e) => onContextMenu(e, column.key)}
-      title={column.originalName}
-      style={{ width: '100%' }}
-    >
-      <span className="block truncate w-full">
-        {column.originalName}
-      </span>
-      {emailColumn === column.key && <span className="ml-2 flex-shrink-0">📧</span>}
-    </div>
-  );
-};
-
 export default function DataGridView({
   data,
   onDataChange,
@@ -42,24 +25,17 @@ export default function DataGridView({
 
     const keys = Object.keys(data[0]);
     return keys.map((key) => {
-      // Calculate width (generous 12px per char + 60px padding)
-      const calculatedWidth = Math.max(160, key.length * 12 + 60);
+      // Calculate width strictly based on text length
+      const headerText = key + (emailColumn === key ? ' 📧' : '');
+      const calculatedWidth = Math.max(150, headerText.length * 12 + 40);
 
       return {
         key,
-        name: key,
-        originalName: key,
+        name: headerText,
         editable: true,
         resizable: true,
         width: calculatedWidth,
-        minWidth: calculatedWidth, // Strictly enforce minimum width
-        headerRenderer: (props: any) => (
-          <HeaderRenderer
-            column={{ ...props.column, originalName: key }}
-            emailColumn={emailColumn}
-            onContextMenu={handleContextMenu}
-          />
-        )
+        minWidth: calculatedWidth,
       };
     });
   }, [data, emailColumn]);

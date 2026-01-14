@@ -90,11 +90,14 @@ body {
 
 /* Data grid header styling */
 .rdg-header-row .rdg-cell {
-  padding: 0 !important;
-  /* Allow custom renderer to fill space */
-  background-color: transparent !important;
-  /* Let renderer handle bg */
+  background-color: #f3f4f6 !important;
+  color: #374151 !important;
+  font-weight: 600 !important;
+  padding: 0 12px !important;
+  display: flex !important;
+  align-items: center !important;
   border-right: 1px solid #e5e7eb !important;
+  white-space: nowrap !important;
 }
 
 /* Ensure data cells don't overflow */
