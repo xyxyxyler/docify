@@ -19,41 +19,35 @@ body {
   }
 }
 
-/* A4 Page Styling */
+/* A4 Page Styling - Multi-Page Word Style */
 .a4-page {
   width: 210mm;
-  height: 297mm;
+  min-height: 297mm;
   padding: 20mm;
-  margin: 0 auto;
+  margin: 0 auto 20px auto;
   background: white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  /* Enforce height limit - no scrolling within page */
   position: relative;
+  /* Allow content to flow - visual page breaks handled by ProseMirror background */
 }
 
-/* Visual page boundary indicator for editor */
-.a4-page::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 20mm;
-  right: 20mm;
-  height: 1px;
-  background: linear-gradient(to right,
-      transparent 0%,
-      rgba(200, 200, 200, 0.5) 10%,
-      rgba(200, 200, 200, 0.8) 50%,
-      rgba(200, 200, 200, 0.5) 90%,
-      transparent 100%);
-  pointer-events: none;
-}
-
-/* TipTap Editor Styling */
+/* TipTap Editor Styling - Multi-Page Appearance */
 .ProseMirror {
   outline: none;
-  min-height: 100%;
+  min-height: 257mm;
+  /* Content area height (297mm - 40mm padding) */
   color: #1f2937;
+  /* Create visual page separators every 297mm */
+  background-image:
+    linear-gradient(to bottom,
+      transparent 0mm,
+      transparent 257mm,
+      #e5e7eb 257mm,
+      #e5e7eb calc(257mm + 20px),
+      transparent calc(257mm + 20px));
+  background-size: 100% 297mm;
+  background-repeat: repeat-y;
+  background-position: 0 0;
 }
 
 .ProseMirror p {
