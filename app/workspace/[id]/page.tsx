@@ -207,149 +207,153 @@ export default function WorkspacePage() {
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-slate-50 via-gray-50 to-purple-50/20">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-xl border-b border-gray-200/50 px-6 py-3 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="flex items-center gap-2 px-3 py-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all duration-200"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline text-sm font-medium">Back</span>
-          </button>
+      <header className="bg-white/80 backdrop-blur-xl border-b border-gray-200/50 px-3 sm:px-6 py-3 flex-shrink-0">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          {/* Left Section */}
+          <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="flex items-center gap-2 px-2 sm:px-3 py-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all duration-200"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline text-sm font-medium">Back</span>
+            </button>
 
-          <div className="h-6 w-px bg-gray-200" />
+            <div className="hidden sm:block h-6 w-px bg-gray-200" />
 
-          <div className="flex items-center gap-3">
-            <Logo variant="dark" size="sm" showText={false} />
-            <input
-              type="text"
-              value={projectName}
-              onChange={(e) => setProjectName(e.target.value)}
-              className="text-lg font-semibold border-none outline-none bg-transparent text-gray-900 min-w-[200px] focus:ring-0"
-              placeholder="Project Name"
-            />
-          </div>
+            <div className="flex items-center gap-2 sm:gap-3 flex-1 sm:flex-initial">
+              <Logo variant="dark" size="sm" showText={false} />
+              <input
+                type="text"
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+                className="text-base sm:text-lg font-semibold border-none outline-none bg-transparent text-gray-900 w-full sm:min-w-[200px] focus:ring-0"
+                placeholder="Project Name"
+              />
+            </div>
 
-          <div className="h-6 w-px bg-gray-200" />
+            <div className="hidden xl:block h-6 w-px bg-gray-200" />
 
-          {/* Filename Pattern Control */}
-          <div className="hidden lg:flex items-center gap-2 group relative">
-            <label className="text-sm text-gray-600 whitespace-nowrap">Filename:</label>
-            <input
-              type="text"
-              value={filenamePattern}
-              onChange={(e) => setFilenamePattern(e.target.value)}
-              placeholder="{Name}_{ID}"
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent min-w-[150px]"
-              title="Use {ColumnName} to insert data from your columns"
-            />
-            {/* Tooltip */}
-            <div className="absolute top-full left-0 mt-2 hidden group-hover:block z-50">
-              <div className="bg-gray-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
-                <div className="font-medium mb-1">Available variables:</div>
-                {columnHeaders.length > 0 ? (
-                  <div className="flex flex-wrap gap-1 max-w-xs">
-                    {columnHeaders.slice(0, 6).map(col => (
-                      <span key={col} className="bg-gray-800 px-2 py-0.5 rounded">{`{${col}}`}</span>
-                    ))}
-                    {columnHeaders.length > 6 && <span>+{columnHeaders.length - 6} more</span>}
-                  </div>
-                ) : (
-                  <div className="text-gray-400">Upload data to see variables</div>
-                )}
+            {/* Filename Pattern Control - Hidden on mobile */}
+            <div className="hidden xl:flex items-center gap-2 group relative">
+              <label className="text-sm text-gray-600 whitespace-nowrap">Filename:</label>
+              <input
+                type="text"
+                value={filenamePattern}
+                onChange={(e) => setFilenamePattern(e.target.value)}
+                placeholder="{Name}_{ID}"
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent w-[150px]"
+                title="Use {ColumnName} to insert data from your columns"
+              />
+              {/* Tooltip */}
+              <div className="absolute top-full left-0 mt-2 hidden group-hover:block z-50">
+                <div className="bg-gray-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
+                  <div className="font-medium mb-1">Available variables:</div>
+                  {columnHeaders.length > 0 ? (
+                    <div className="flex flex-wrap gap-1 max-w-xs">
+                      {columnHeaders.slice(0, 6).map(col => (
+                        <span key={col} className="bg-gray-800 px-2 py-0.5 rounded">{`{${col}}`}</span>
+                      ))}
+                      {columnHeaders.length > 6 && <span>+{columnHeaders.length - 6} more</span>}
+                    </div>
+                  ) : (
+                    <div className="text-gray-400">Upload data to see variables</div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-2">
-          {/* View Mode Toggle */}
-          <div className="hidden md:flex items-center bg-gray-100 rounded-xl p-1 gap-1">
+          {/* Right Section - Action Buttons */}
+          <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto overflow-x-auto">
+            {/* View Mode Toggle - Hidden on mobile */}
+            <div className="hidden md:flex items-center bg-gray-100 rounded-xl p-1 gap-1 flex-shrink-0">
+              <button
+                onClick={() => setViewMode('data')}
+                className={`flex items-center gap-2 px-3 lg:px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${viewMode === 'data'
+                  ? 'bg-white text-violet-700 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+                  }`}
+              >
+                <Table2 className="w-4 h-4" />
+                <span className="hidden lg:inline">Data</span>
+              </button>
+              <button
+                onClick={() => setViewMode('split')}
+                className={`flex items-center gap-2 px-3 lg:px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${viewMode === 'split'
+                  ? 'bg-white text-violet-700 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+                  }`}
+              >
+                <Columns className="w-4 h-4" />
+                <span className="hidden lg:inline">Split</span>
+              </button>
+              <button
+                onClick={() => setViewMode('editor')}
+                className={`flex items-center gap-2 px-3 lg:px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${viewMode === 'editor'
+                  ? 'bg-white text-violet-700 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+                  }`}
+              >
+                <PenLine className="w-4 h-4" />
+                <span className="hidden lg:inline">Editor</span>
+              </button>
+            </div>
+
+            <div className="hidden md:block h-8 w-px bg-gray-200" />
+
+            {/* Action Buttons - Responsive sizing */}
             <button
-              onClick={() => setViewMode('data')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${viewMode === 'data'
-                ? 'bg-white text-violet-700 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-                }`}
+              onClick={() => handleActionWithLimitCheck('preview')}
+              disabled={gridData.length === 0 || !templateHtml}
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-amber-500 text-white rounded-xl text-sm font-medium hover:bg-amber-600 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm hover:shadow-md disabled:shadow-none flex-shrink-0"
             >
-              <Table2 className="w-4 h-4" />
-              Data
+              <Eye className="w-4 h-4" />
+              <span className="hidden sm:inline">Preview</span>
             </button>
+
             <button
-              onClick={() => setViewMode('split')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${viewMode === 'split'
-                ? 'bg-white text-violet-700 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-                }`}
+              onClick={() => handleActionWithLimitCheck('download')}
+              disabled={gridData.length === 0 || !templateHtml}
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm hover:shadow-md disabled:shadow-none flex-shrink-0"
             >
-              <Columns className="w-4 h-4" />
-              Split
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">Download</span>
             </button>
+
             <button
-              onClick={() => setViewMode('editor')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${viewMode === 'editor'
-                ? 'bg-white text-violet-700 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
+              disabled={true}
+              className="hidden sm:flex items-center gap-2 px-4 py-2.5 bg-gray-200 text-gray-400 rounded-xl font-medium cursor-not-allowed flex-shrink-0"
+              title="Coming Soon"
+            >
+              <Mail className="w-4 h-4" />
+              <span className="hidden sm:inline">Send</span>
+              <span className="text-[10px] bg-gray-300 text-gray-500 px-1.5 py-0.5 rounded-md font-medium">Soon</span>
+            </button>
+
+            <button
+              onClick={saveProject}
+              disabled={saving}
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-sm font-medium transition-all duration-200 disabled:opacity-60 shadow-sm hover:shadow-md flex-shrink-0 ${saveSuccess
+                ? 'bg-emerald-600 text-white'
+                : 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:shadow-violet-500/30'
                 }`}
             >
-              <PenLine className="w-4 h-4" />
-              Editor
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : saveSuccess ? (
+                <Check className="w-4 h-4" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              <span className="hidden sm:inline">{saveSuccess ? 'Saved!' : 'Save'}</span>
             </button>
           </div>
-
-          <div className="h-8 w-px bg-gray-200 mx-2" />
-
-          {/* Action Buttons */}
-          <button
-            onClick={() => handleActionWithLimitCheck('preview')}
-            disabled={gridData.length === 0 || !templateHtml}
-            className="flex items-center gap-2 px-4 py-2.5 bg-amber-500 text-white rounded-xl font-medium hover:bg-amber-600 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm hover:shadow-md disabled:shadow-none"
-          >
-            <Eye className="w-4 h-4" />
-            <span className="hidden sm:inline">Preview</span>
-          </button>
-
-          <button
-            onClick={() => handleActionWithLimitCheck('download')}
-            disabled={gridData.length === 0 || !templateHtml}
-            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm hover:shadow-md disabled:shadow-none"
-          >
-            <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Download</span>
-          </button>
-
-          <button
-            disabled={true}
-            className="flex items-center gap-2 px-4 py-2.5 bg-gray-200 text-gray-400 rounded-xl font-medium cursor-not-allowed"
-            title="Coming Soon"
-          >
-            <Mail className="w-4 h-4" />
-            <span className="hidden sm:inline">Send</span>
-            <span className="text-[10px] bg-gray-300 text-gray-500 px-1.5 py-0.5 rounded-md font-medium">Soon</span>
-          </button>
-
-          <button
-            onClick={saveProject}
-            disabled={saving}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-200 disabled:opacity-60 shadow-sm hover:shadow-md ${saveSuccess
-              ? 'bg-emerald-600 text-white'
-              : 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:shadow-violet-500/30'
-              }`}
-          >
-            {saving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : saveSuccess ? (
-              <Check className="w-4 h-4" />
-            ) : (
-              <Save className="w-4 h-4" />
-            )}
-            {saveSuccess ? 'Saved!' : 'Save'}
-          </button>
         </div>
       </header>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-hidden p-4">
+      < div className="flex-1 overflow-hidden p-4" >
         {viewMode === 'split' ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full">
             {/* Data Panel */}
@@ -470,11 +474,12 @@ export default function WorkspacePage() {
               onInsertVariable={handleInsertVariable}
             />
           </div>
-        )}
-      </div>
+        )
+        }
+      </div >
 
       {/* Preview Modal */}
-      <PreviewModal
+      < PreviewModal
         isOpen={showPreview}
         onClose={() => setShowPreview(false)}
         templateHtml={templateHtml}
@@ -483,7 +488,7 @@ export default function WorkspacePage() {
       />
 
       {/* Download Modal */}
-      <DownloadModal
+      < DownloadModal
         isOpen={showDownload}
         onClose={() => setShowDownload(false)}
         templateHtml={templateHtml}
@@ -493,77 +498,79 @@ export default function WorkspacePage() {
       />
 
       {/* Batch Limit Warning Modal */}
-      {showBatchWarning && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => {
-              setShowBatchWarning(false);
-              setPendingAction(null);
-            }}
-          />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-[90vw] max-w-md p-6">
-            <button
+      {
+        showBatchWarning && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div
+              className="absolute inset-0 bg-black/50"
               onClick={() => {
                 setShowBatchWarning(false);
                 setPendingAction(null);
               }}
-              className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-lg transition"
-            >
-              <X className="w-5 h-5 text-gray-500" />
-            </button>
-
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
-                <AlertTriangle className="w-6 h-6 text-amber-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Batch Size Limit Exceeded</h3>
-                <p className="text-sm text-gray-500">Your data exceeds the maximum batch size</p>
-              </div>
-            </div>
-
-            <div className="bg-gray-50 rounded-xl p-4 mb-6">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-gray-600">Your data rows:</span>
-                <span className="font-semibold text-gray-900">{gridData.length}</span>
-              </div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-gray-600">Your batch limit:</span>
-                <span className="font-semibold text-amber-600">{batchLimit}</span>
-              </div>
-              <hr className="my-2 border-gray-200" />
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Documents to generate:</span>
-                <span className="font-semibold text-emerald-600">{Math.min(gridData.length, batchLimit)}</span>
-              </div>
-            </div>
-
-            <p className="text-sm text-gray-600 mb-6">
-              Only the first <strong>{batchLimit}</strong> records will be processed.
-              To process more, contact your administrator to increase your batch limit.
-            </p>
-
-            <div className="flex gap-3">
+            />
+            <div className="relative bg-white rounded-2xl shadow-2xl w-[90vw] max-w-md p-6">
               <button
                 onClick={() => {
                   setShowBatchWarning(false);
                   setPendingAction(null);
                 }}
-                className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition"
+                className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-lg transition"
               >
-                Cancel
+                <X className="w-5 h-5 text-gray-500" />
               </button>
-              <button
-                onClick={handleProceedWithLimit}
-                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-violet-500/30 transition"
-              >
-                Continue with {batchLimit}
-              </button>
+
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Batch Size Limit Exceeded</h3>
+                  <p className="text-sm text-gray-500">Your data exceeds the maximum batch size</p>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 rounded-xl p-4 mb-6">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-gray-600">Your data rows:</span>
+                  <span className="font-semibold text-gray-900">{gridData.length}</span>
+                </div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-gray-600">Your batch limit:</span>
+                  <span className="font-semibold text-amber-600">{batchLimit}</span>
+                </div>
+                <hr className="my-2 border-gray-200" />
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Documents to generate:</span>
+                  <span className="font-semibold text-emerald-600">{Math.min(gridData.length, batchLimit)}</span>
+                </div>
+              </div>
+
+              <p className="text-sm text-gray-600 mb-6">
+                Only the first <strong>{batchLimit}</strong> records will be processed.
+                To process more, contact your administrator to increase your batch limit.
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowBatchWarning(false);
+                    setPendingAction(null);
+                  }}
+                  className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleProceedWithLimit}
+                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-violet-500/30 transition"
+                >
+                  Continue with {batchLimit}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 }

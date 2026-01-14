@@ -12,23 +12,25 @@ interface DataGridViewProps {
   emailColumn?: string;
 }
 
-export default function DataGridView({ 
-  data, 
-  onDataChange, 
+export default function DataGridView({
+  data,
+  onDataChange,
   onSetEmailColumn,
-  emailColumn 
+  emailColumn
 }: DataGridViewProps) {
   const [rows, setRows] = useState(data);
 
   const columns = useMemo(() => {
     if (data.length === 0) return [];
-    
+
     const keys = Object.keys(data[0]);
     return keys.map((key) => ({
       key,
       name: key + (emailColumn === key ? ' 📧' : ''),
       editable: true,
       resizable: true,
+      minWidth: 120, // Prevent truncation
+      width: 'auto',
     }));
   }, [data, emailColumn]);
 
@@ -39,12 +41,12 @@ export default function DataGridView({
 
   const handleContextMenu = (e: React.MouseEvent, columnKey: string) => {
     e.preventDefault();
-    
+
     const menu = document.createElement('div');
     menu.className = 'fixed bg-white shadow-lg rounded-lg border p-2 z-50';
     menu.style.left = `${e.clientX}px`;
     menu.style.top = `${e.clientY}px`;
-    
+
     const option = document.createElement('button');
     option.className = 'block w-full text-left px-4 py-2 hover:bg-gray-100 rounded';
     option.textContent = emailColumn === columnKey ? 'Remove as Email Column' : 'Set as Email Column';
@@ -52,15 +54,15 @@ export default function DataGridView({
       onSetEmailColumn(emailColumn === columnKey ? '' : columnKey);
       menu.remove();
     };
-    
+
     menu.appendChild(option);
     document.body.appendChild(menu);
-    
+
     const removeMenu = () => {
       menu.remove();
       document.removeEventListener('click', removeMenu);
     };
-    
+
     setTimeout(() => {
       document.addEventListener('click', removeMenu);
     }, 0);
@@ -87,9 +89,10 @@ export default function DataGridView({
             headerRenderer: (props: any) => (
               <div
                 onContextMenu={(e) => handleContextMenu(e, col.key)}
-                className="flex items-center h-full"
+                className="flex items-center h-full px-2"
+                title={col.name}
               >
-                {props.column.name}
+                <span className="truncate">{props.column.name}</span>
               </div>
             ),
           }))}
