@@ -51,6 +51,7 @@ export default function DataGridView({
         editable: true,
         resizable: true,
         width: calculatedWidth,
+        minWidth: calculatedWidth, // Strictly prevent shrinking below calculated width
         // Header Renderer handles specific styling (bg, color, alignment)
         headerRenderer: (props: any) => (
           <HeaderRenderer
