@@ -94,6 +94,102 @@ const FontFamily = Extension.create({
   },
 });
 
+// Custom FontSize extension
+const FontSize = Extension.create({
+  name: 'fontSize',
+
+  addOptions() {
+    return {
+      types: ['textStyle'],
+    };
+  },
+
+  addGlobalAttributes() {
+    return [
+      {
+        types: this.options.types,
+        attributes: {
+          fontSize: {
+            default: null,
+            parseHTML: element => element.style.fontSize?.replace(/['"]/g, ''),
+            renderHTML: attributes => {
+              if (!attributes.fontSize) {
+                return {};
+              }
+              return {
+                style: `font-size: ${attributes.fontSize}`,
+              };
+            },
+          },
+        },
+      },
+    ];
+  },
+
+  addCommands() {
+    return {
+      setFontSize:
+        (fontSize: string) =>
+          ({ chain }: any) => {
+            return chain().setMark('textStyle', { fontSize }).run();
+          },
+      unsetFontSize:
+        () =>
+          ({ chain }: any) => {
+            return chain().setMark('textStyle', { fontSize: null }).removeEmptyTextStyle().run();
+          },
+    } as any;
+  },
+});
+
+// Custom LineHeight extension
+const LineHeight = Extension.create({
+  name: 'lineHeight',
+
+  addOptions() {
+    return {
+      types: ['paragraph', 'heading'],
+    };
+  },
+
+  addGlobalAttributes() {
+    return [
+      {
+        types: this.options.types,
+        attributes: {
+          lineHeight: {
+            default: null,
+            parseHTML: element => element.style.lineHeight,
+            renderHTML: attributes => {
+              if (!attributes.lineHeight) {
+                return {};
+              }
+              return {
+                style: `line-height: ${attributes.lineHeight}`,
+              };
+            },
+          },
+        },
+      },
+    ];
+  },
+
+  addCommands() {
+    return {
+      setLineHeight:
+        (lineHeight: string) =>
+          ({ chain }: any) => {
+            return chain().updateAttributes('paragraph', { lineHeight }).updateAttributes('heading', { lineHeight }).run();
+          },
+      unsetLineHeight:
+        () =>
+          ({ chain }: any) => {
+            return chain().updateAttributes('paragraph', { lineHeight: null }).updateAttributes('heading', { lineHeight: null }).run();
+          },
+    } as any;
+  },
+});
+
 // Resize image to prevent memory issues during PDF generation
 const resizeImage = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -187,6 +283,12 @@ export default function RichTextEditor({
       TextStyle,
       FontFamily.configure({
         types: ['textStyle'],
+      }),
+      FontSize.configure({
+        types: ['textStyle'],
+      }),
+      LineHeight.configure({
+        types: ['paragraph', 'heading'],
       }),
       TextAlign.configure({
         types: ['heading', 'paragraph'],
@@ -382,6 +484,57 @@ export default function RichTextEditor({
           <option value="Arial, sans-serif" style={{ fontFamily: 'Arial, sans-serif' }}>Arial</option>
           <option value="Arial Black, sans-serif" style={{ fontFamily: 'Arial Black, sans-serif' }}>Arial Black</option>
           <option value="Poppins, sans-serif" style={{ fontFamily: 'Poppins, sans-serif' }}>Poppins</option>
+        </select>
+
+        {/* Font Size Dropdown */}
+        <select
+          onChange={(e) => {
+            if (e.target.value) {
+              (editor.chain().focus() as any).setFontSize(e.target.value).run();
+            } else {
+              (editor.chain().focus() as any).unsetFontSize().run();
+            }
+          }}
+          value={editor.getAttributes('textStyle').fontSize || ''}
+          className="h-8 px-2 text-sm border border-gray-300 rounded bg-white hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          title="Font Size"
+        >
+          <option value="">Size</option>
+          <option value="8px">8px</option>
+          <option value="10px">10px</option>
+          <option value="12px">12px</option>
+          <option value="14px">14px</option>
+          <option value="16px">16px</option>
+          <option value="18px">18px</option>
+          <option value="20px">20px</option>
+          <option value="24px">24px</option>
+          <option value="28px">28px</option>
+          <option value="32px">32px</option>
+          <option value="36px">36px</option>
+          <option value="48px">48px</option>
+          <option value="72px">72px</option>
+        </select>
+
+        {/* Line Height Dropdown */}
+        <select
+          onChange={(e) => {
+            if (e.target.value) {
+              (editor.chain().focus() as any).setLineHeight(e.target.value).run();
+            } else {
+              (editor.chain().focus() as any).unsetLineHeight().run();
+            }
+          }}
+          value={editor.getAttributes('paragraph').lineHeight || editor.getAttributes('heading').lineHeight || ''}
+          className="h-8 px-2 text-sm border border-gray-300 rounded bg-white hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          title="Line Spacing"
+        >
+          <option value="">Line</option>
+          <option value="1.0">1.0</option>
+          <option value="1.15">1.15</option>
+          <option value="1.5">1.5</option>
+          <option value="2.0">2.0</option>
+          <option value="2.5">2.5</option>
+          <option value="3.0">3.0</option>
         </select>
 
         <Divider />

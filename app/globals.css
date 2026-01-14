@@ -41,6 +41,28 @@ body {
   color: #1f2937;
 }
 
+/* Heading styles */
+.ProseMirror h1 {
+  font-size: 2em;
+  font-weight: bold;
+  margin: 0.67em 0;
+  color: #1f2937;
+}
+
+.ProseMirror h2 {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin: 0.83em 0;
+  color: #1f2937;
+}
+
+.ProseMirror h3 {
+  font-size: 1.17em;
+  font-weight: bold;
+  margin: 1em 0;
+  color: #1f2937;
+}
+
 /* Image styling in editor */
 .ProseMirror img {
   cursor: pointer;

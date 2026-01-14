@@ -114,7 +114,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="h-screen w-screen flex overflow-hidden bg-white">
+    <div className="min-h-screen w-screen flex bg-white">
       {/* Left Panel - Gradient Image with rounded corners */}
       <div className="hidden lg:flex lg:w-1/2 p-4">
         <div className="relative w-full h-full rounded-3xl overflow-hidden bg-gradient-to-br from-purple-900 via-pink-600 to-blue-500">
@@ -175,7 +175,7 @@ export default function SignupPage() {
       </div>
 
       {/* Right Panel - Signup Form */}
-      <div className="w-full lg:w-1/2 bg-white p-8 sm:p-12 lg:p-16 flex flex-col justify-center overflow-y-auto">
+      <div className="w-full lg:w-1/2 bg-white p-6 sm:p-8 md:p-12 lg:p-16 flex flex-col justify-center overflow-y-auto min-h-screen">
         {/* Logo */}
         <div className="mb-8">
           <Logo variant="dark" size="md" />
@@ -341,7 +341,7 @@ export default function SignupPage() {
         </form>
 
         {/* Sign In Link */}
-        <p className="text-center text-sm text-gray-500 mt-6">
+        <p className="text-center text-sm text-gray-500 mt-6 mb-8">
           Already have an account?{' '}
           <Link href="/login" className="text-gray-900 font-medium hover:text-purple-600 transition">
             Sign In
