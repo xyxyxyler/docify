@@ -88,11 +88,15 @@ body {
   background-color: #f9fafb !important;
 }
 
-/* Fix column header truncation */
+/* Fix column header truncation and background coverage */
 .rdg-header-row .rdg-cell {
-  white-space: normal !important;
-  overflow: visible !important;
-  text-overflow: clip !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  padding: 8px !important;
+  min-height: 35px !important;
+  display: flex !important;
+  align-items: center !important;
 }
 
 

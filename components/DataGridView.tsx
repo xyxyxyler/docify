@@ -29,7 +29,7 @@ export default function DataGridView({
       name: key + (emailColumn === key ? ' 📧' : ''),
       editable: true,
       resizable: true,
-      minWidth: 150, // Ensure full header text is visible
+      minWidth: 180, // Accommodate full header text
     }));
   }, [data, emailColumn]);
 
