@@ -88,15 +88,20 @@ body {
   background-color: #f9fafb !important;
 }
 
-/* Fix column header truncation and background coverage */
+/* Data grid header styling */
 .rdg-header-row .rdg-cell {
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
-  padding: 8px !important;
-  min-height: 35px !important;
-  display: flex !important;
-  align-items: center !important;
+  padding: 8px 12px !important;
+  font-weight: 600 !important;
+}
+
+/* Ensure data cells don't overflow */
+.rdg-cell {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
 

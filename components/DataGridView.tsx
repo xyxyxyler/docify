@@ -24,13 +24,19 @@ export default function DataGridView({
     if (data.length === 0) return [];
 
     const keys = Object.keys(data[0]);
-    return keys.map((key) => ({
-      key,
-      name: key + (emailColumn === key ? ' 📧' : ''),
-      editable: true,
-      resizable: true,
-      minWidth: 180, // Accommodate full header text
-    }));
+    return keys.map((key) => {
+      const headerText = key + (emailColumn === key ? ' 📧' : '');
+      // Calculate width based on header text length (roughly 10px per character + padding)
+      const calculatedWidth = Math.max(120, headerText.length * 10 + 40);
+
+      return {
+        key,
+        name: headerText,
+        editable: true,
+        resizable: true,
+        width: calculatedWidth, // Set actual width, not just minWidth
+      };
+    });
   }, [data, emailColumn]);
 
   const handleRowsChange = (newRows: RowData[]) => {
