@@ -321,17 +321,19 @@ export default function RichTextEditor({
 
   // Load Initial Content
   useEffect(() => {
-    if (content) {
+    // Only update if prop content is different from current state
+    // This allows loading data from DB while avoiding circular updates during typing
+    const currentContent = pages.join(PAGE_DELIMITER);
+    if (content && content !== currentContent) {
       if (content.includes('page-break-delimiter')) {
-        // Split by delimiter if exists
-        const loadedPages = content.split(PAGE_DELIMITER);
-        setPages(loadedPages);
+        setPages(content.split(PAGE_DELIMITER));
       } else {
-        // First load or legacy content: treat as single page
         setPages([content]);
       }
+    } else if (!content && pages.length === 1 && pages[0] === '') {
+      // Keep blank if both are blank
     }
-  }, []); // Only run once on mount
+  }, [content]);
 
   // Sync back to parent (Join pages)
   const syncContent = (newPages: string[]) => {
