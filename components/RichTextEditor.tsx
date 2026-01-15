@@ -317,6 +317,7 @@ export default function RichTextEditor({
   const [pages, setPages] = useState<string[]>(['']);
   const [activePageIndex, setActivePageIndex] = useState(0);
   const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
+  const [version, setVersion] = useState(0); // Add version to force editor re-mount on load
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load Initial Content
@@ -330,6 +331,7 @@ export default function RichTextEditor({
       } else {
         setPages([content]);
       }
+      setVersion(v => v + 1); // Increment version to force re-render of editors
     } else if (!content && pages.length === 1 && pages[0] === '') {
       // Keep blank if both are blank
     }
@@ -508,7 +510,7 @@ export default function RichTextEditor({
       <div className="flex-1 overflow-auto p-8 flex flex-col items-center gap-8">
         {pages.map((pageContent, index) => (
           <SinglePageEditor
-            key={index}
+            key={`${index}-${version}`} // Force remount if version changes (e.g. data loaded)
             pageIndex={index}
             initialContent={pageContent}
             isActive={activePageIndex === index}
