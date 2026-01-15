@@ -19,16 +19,40 @@ body {
   }
 }
 
-/* A4 Page Styling - Clean Single Page */
+/* A4 Page Styling - Word-Style with Bottom Indicator */
 .a4-page {
   width: 210mm;
   height: 297mm;
   padding: 20mm;
   margin: 0 auto;
   background: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.1);
   position: relative;
   overflow: hidden;
+  /* Prominent Word-style layered shadows matching preview */
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.1),
+    0 2px 4px rgba(0, 0, 0, 0.06),
+    0 4px 8px rgba(0, 0, 0, 0.08),
+    0 8px 16px rgba(0, 0, 0, 0.1);
+  border: 1px solid #d1d5db;
+}
+
+/* Page bottom indicator - shows where page ends */
+.a4-page::after {
+  content: '';
+  position: absolute;
+  bottom: 20mm;
+  left: 20mm;
+  right: 20mm;
+  height: 2px;
+  background: linear-gradient(to right,
+      transparent 0%,
+      rgba(220, 38, 38, 0.25) 15%,
+      rgba(220, 38, 38, 0.4) 50%,
+      rgba(220, 38, 38, 0.25) 85%,
+      transparent 100%);
+  pointer-events: none;
+  opacity: 0.6;
 }
 
 /* TipTap Editor Styling - Clean and Simple */

@@ -188,8 +188,15 @@ export default function PreviewModal({
                   overflow: 'hidden',
                   pageBreakAfter: 'always',
                   marginBottom: index < pages.length - 1 ? '20px' : '0',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.1), 0 8px 0 -4px rgba(0, 0, 0, 0.05)',
-                  border: '1px solid rgba(0, 0, 0, 0.08)'
+                  // Prominent Word-style layered shadows for 3D effect
+                  boxShadow: `
+                    0 0 0 1px rgba(0, 0, 0, 0.1),
+                    0 2px 4px rgba(0, 0, 0, 0.06),
+                    0 4px 8px rgba(0, 0, 0, 0.08),
+                    0 8px 16px rgba(0, 0, 0, 0.1),
+                    0 1px 2px rgba(0, 0, 0, 0.05) inset
+                  `,
+                  border: '1px solid #d1d5db'
                 }}
               >
                 <div
