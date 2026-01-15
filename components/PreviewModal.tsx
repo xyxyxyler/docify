@@ -48,69 +48,16 @@ export default function PreviewModal({
       return;
     }
 
-    // Create a temporary container to measure content
-    const tempContainer = document.createElement('div');
-    tempContainer.style.cssText = `
-      position: absolute;
-      visibility: hidden;
-      width: 210mm;
-      padding: 20mm;
-      font-family: inherit;
-      font-size: inherit;
-      line-height: inherit;
-    `;
-    document.body.appendChild(tempContainer);
-    tempContainer.innerHTML = previewHtml;
+    const PAGE_DELIMITER = '<div class="page-break-delimiter"></div>';
 
-    const pageHeight = 297; // mm (A4 height)
-    const padding = 40; // 20mm top + 20mm bottom in mm
-    // A4 height in pixels at 96 DPI: 297mm * 3.7795 = 1122.5px
-    // Safe content height = Total height - Padding (40mm)
-    // 297mm - 40mm = 257mm usable height
-    const maxContentHeight = (pageHeight - padding) * 3.7795275591;
-
-    const tempPages: string[] = [];
-    let currentPageContent: HTMLElement[] = [];
-    let currentHeight = 0;
-
-    const children = Array.from(tempContainer.children) as HTMLElement[];
-
-    for (const child of children) {
-      const clone = child.cloneNode(true) as HTMLElement;
-      const childHeight = child.offsetHeight;
-
-      // Check BEFORE adding if the element will exceed page height
-      // This prevents content from being cut off at page boundaries
-      if (currentHeight + childHeight > maxContentHeight && currentPageContent.length > 0) {
-        // Page is full, save current page and start new one
-        const pageDiv = document.createElement('div');
-        currentPageContent.forEach(el => pageDiv.appendChild(el));
-        tempPages.push(pageDiv.innerHTML);
-        currentPageContent = [clone];
-        currentHeight = childHeight;
-      } else {
-        currentPageContent.push(clone);
-        currentHeight += childHeight;
-      }
+    if (previewHtml.includes('page-break-delimiter')) {
+      // Explicit pages from new editor
+      setPages(previewHtml.split(PAGE_DELIMITER));
+    } else {
+      // Legacy support or fallback: Treat as single page
+      setPages([previewHtml]);
     }
 
-    // Add remaining content as last page
-    if (currentPageContent.length > 0) {
-      const pageDiv = document.createElement('div');
-      currentPageContent.forEach(el => pageDiv.appendChild(el));
-      tempPages.push(pageDiv.innerHTML);
-    }
-
-    document.body.removeChild(tempContainer);
-
-    const newPages = tempPages.length > 0 ? tempPages : [previewHtml];
-
-    // Only update if pages actually changed
-    setPages(prevPages => {
-      if (prevPages.length !== newPages.length) return newPages;
-      if (prevPages.some((page, i) => page !== newPages[i])) return newPages;
-      return prevPages;
-    });
   }, [previewHtml, isOpen]);
 
   if (!isOpen || data.length === 0) return null;

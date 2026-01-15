@@ -1,6 +1,6 @@
 'use client';
 
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -31,167 +31,104 @@ import {
   Redo,
   Highlighter,
   RemoveFormatting,
-  Maximize2,
-  Minimize2,
-  FileMinus
+  Plus,
+  Trash2,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 
+// --- Constants & Types ---
+
+const MAX_IMAGE_WIDTH = 800;
+const MAX_IMAGE_HEIGHT = 600;
+const PAGE_DELIMITER = '<div class="page-break-delimiter"></div>';
+
 interface RichTextEditorProps {
-  content: string;
+  content: string; // "Page 1 <delimiter> Page 2"
   onContentChange: (html: string) => void;
   variables: string[];
   onInsertVariable: (variable: string) => void;
 }
 
-// Max image size in pixels (to prevent memory issues with large images)
-const MAX_IMAGE_WIDTH = 800;
-const MAX_IMAGE_HEIGHT = 600;
-
-// Custom FontFamily extension for TipTap v2
+// --- Extensions (Same as before) ---
 const FontFamily = Extension.create({
   name: 'fontFamily',
-
-  addOptions() {
-    return {
-      types: ['textStyle'],
-    };
-  },
-
+  addOptions() { return { types: ['textStyle'] }; },
   addGlobalAttributes() {
-    return [
-      {
-        types: this.options.types,
-        attributes: {
-          fontFamily: {
-            default: null,
-            parseHTML: element => element.style.fontFamily?.replace(/['"]/g, ''),
-            renderHTML: attributes => {
-              if (!attributes.fontFamily) {
-                return {};
-              }
-              return {
-                style: `font-family: ${attributes.fontFamily}`,
-              };
-            },
+    return [{
+      types: this.options.types,
+      attributes: {
+        fontFamily: {
+          default: null,
+          parseHTML: element => element.style.fontFamily?.replace(/['"]/g, ''),
+          renderHTML: attributes => {
+            if (!attributes.fontFamily) return {};
+            return { style: `font-family: ${attributes.fontFamily}` };
           },
         },
       },
-    ];
+    }];
   },
-
   addCommands() {
     return {
-      setFontFamily:
-        (fontFamily: string) =>
-          ({ chain }: any) => {
-            return chain().setMark('textStyle', { fontFamily }).run();
-          },
-      unsetFontFamily:
-        () =>
-          ({ chain }: any) => {
-            return chain().setMark('textStyle', { fontFamily: null }).removeEmptyTextStyle().run();
-          },
+      setFontFamily: (fontFamily: string) => ({ chain }: any) => chain().setMark('textStyle', { fontFamily }).run(),
+      unsetFontFamily: () => ({ chain }: any) => chain().setMark('textStyle', { fontFamily: null }).removeEmptyTextStyle().run(),
     } as any;
   },
 });
 
-// Custom FontSize extension
 const FontSize = Extension.create({
   name: 'fontSize',
-
-  addOptions() {
-    return {
-      types: ['textStyle'],
-    };
-  },
-
+  addOptions() { return { types: ['textStyle'] }; },
   addGlobalAttributes() {
-    return [
-      {
-        types: this.options.types,
-        attributes: {
-          fontSize: {
-            default: null,
-            parseHTML: element => element.style.fontSize?.replace(/['"]/g, ''),
-            renderHTML: attributes => {
-              if (!attributes.fontSize) {
-                return {};
-              }
-              return {
-                style: `font-size: ${attributes.fontSize}`,
-              };
-            },
+    return [{
+      types: this.options.types,
+      attributes: {
+        fontSize: {
+          default: null,
+          parseHTML: element => element.style.fontSize?.replace(/['"]/g, ''),
+          renderHTML: attributes => {
+            if (!attributes.fontSize) return {};
+            return { style: `font-size: ${attributes.fontSize}` };
           },
         },
       },
-    ];
+    }];
   },
-
   addCommands() {
     return {
-      setFontSize:
-        (fontSize: string) =>
-          ({ chain }: any) => {
-            return chain().setMark('textStyle', { fontSize }).run();
-          },
-      unsetFontSize:
-        () =>
-          ({ chain }: any) => {
-            return chain().setMark('textStyle', { fontSize: null }).removeEmptyTextStyle().run();
-          },
+      setFontSize: (fontSize: string) => ({ chain }: any) => chain().setMark('textStyle', { fontSize }).run(),
+      unsetFontSize: () => ({ chain }: any) => chain().setMark('textStyle', { fontSize: null }).removeEmptyTextStyle().run(),
     } as any;
   },
 });
 
-// Custom LineHeight extension
 const LineHeight = Extension.create({
   name: 'lineHeight',
-
-  addOptions() {
-    return {
-      types: ['paragraph', 'heading'],
-    };
-  },
-
+  addOptions() { return { types: ['paragraph', 'heading'] }; },
   addGlobalAttributes() {
-    return [
-      {
-        types: this.options.types,
-        attributes: {
-          lineHeight: {
-            default: null,
-            parseHTML: element => element.style.lineHeight,
-            renderHTML: attributes => {
-              if (!attributes.lineHeight) {
-                return {};
-              }
-              return {
-                style: `line-height: ${attributes.lineHeight}`,
-              };
-            },
+    return [{
+      types: this.options.types,
+      attributes: {
+        lineHeight: {
+          default: null,
+          parseHTML: element => element.style.lineHeight,
+          renderHTML: attributes => {
+            if (!attributes.lineHeight) return {};
+            return { style: `line-height: ${attributes.lineHeight}` };
           },
         },
       },
-    ];
+    }];
   },
-
   addCommands() {
     return {
-      setLineHeight:
-        (lineHeight: string) =>
-          ({ chain }: any) => {
-            return chain().updateAttributes('paragraph', { lineHeight }).updateAttributes('heading', { lineHeight }).run();
-          },
-      unsetLineHeight:
-        () =>
-          ({ chain }: any) => {
-            return chain().updateAttributes('paragraph', { lineHeight: null }).updateAttributes('heading', { lineHeight: null }).run();
-          },
+      setLineHeight: (lineHeight: string) => ({ chain }: any) => chain().updateAttributes('paragraph', { lineHeight }).updateAttributes('heading', { lineHeight }).run(),
+      unsetLineHeight: () => ({ chain }: any) => chain().updateAttributes('paragraph', { lineHeight: null }).updateAttributes('heading', { lineHeight: null }).run(),
     } as any;
   },
 });
 
-// Resize image to prevent memory issues during PDF generation
 const resizeImage = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -199,30 +136,20 @@ const resizeImage = (file: File): Promise<string> => {
       const img = document.createElement('img');
       img.onload = () => {
         let { width, height } = img;
-
-        // Calculate new dimensions while maintaining aspect ratio
         if (width > MAX_IMAGE_WIDTH || height > MAX_IMAGE_HEIGHT) {
           const ratio = Math.min(MAX_IMAGE_WIDTH / width, MAX_IMAGE_HEIGHT / height);
           width = Math.round(width * ratio);
           height = Math.round(height * ratio);
         }
-
-        // Create canvas and resize
         const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
-
         if (ctx) {
-          // Fill with white background first (prevents black borders on transparent PNGs)
           ctx.fillStyle = '#FFFFFF';
           ctx.fillRect(0, 0, width, height);
-
-          // Draw image on top
           ctx.drawImage(img, 0, 0, width, height);
-          // Convert to base64 with reasonable quality
-          const resizedBase64 = canvas.toDataURL('image/jpeg', 0.85);
-          resolve(resizedBase64);
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
         } else {
           reject(new Error('Could not get canvas context'));
         }
@@ -235,7 +162,6 @@ const resizeImage = (file: File): Promise<string> => {
   });
 };
 
-// Custom Image extension with size and alignment support
 const CustomImage = Image.extend({
   addAttributes() {
     return {
@@ -267,13 +193,27 @@ const CustomImage = Image.extend({
   },
 });
 
-export default function RichTextEditor({
-  content,
-  onContentChange,
-  variables,
-  onInsertVariable
-}: RichTextEditorProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+// --- Sub-Component: Single Page Editor ---
+
+interface SinglePageEditorProps {
+  initialContent: string;
+  isActive: boolean;
+  pageIndex: number;
+  onUpdate: (html: string) => void;
+  onFocus: () => void;
+  onEditorReady: (editor: Editor) => void;
+  imageUploadHandler: (file: File) => Promise<string>;
+}
+
+const SinglePageEditor = ({
+  initialContent,
+  isActive,
+  pageIndex,
+  onUpdate,
+  onFocus,
+  onEditorReady,
+  imageUploadHandler
+}: SinglePageEditorProps) => {
   const [selectedImage, setSelectedImage] = useState<{ node: any; pos: number } | null>(null);
   const [imageWidth, setImageWidth] = useState<string>('');
 
@@ -282,73 +222,28 @@ export default function RichTextEditor({
       StarterKit,
       Underline,
       TextStyle,
-      FontFamily.configure({
-        types: ['textStyle'],
-      }),
-      FontSize.configure({
-        types: ['textStyle'],
-      }),
-      LineHeight.configure({
-        types: ['paragraph', 'heading'],
-      }),
-      TextAlign.configure({
-        types: ['heading', 'paragraph'],
-      }),
-      Highlight.configure({
-        multicolor: false,
-      }),
-      CustomImage.configure({
-        inline: false,
-        allowBase64: true,
-      }),
-      Placeholder.configure({
-        placeholder: 'Start typing your template here...',
-      }),
-      // Custom extension to allow page breaks
-      Extension.create({
-        name: 'pageBreak',
-        addGlobalAttributes() {
-          return [
-            {
-              types: ['paragraph', 'heading'],
-              attributes: {
-                pageBreakBefore: {
-                  default: null,
-                  renderHTML: attributes => {
-                    if (!attributes.pageBreakBefore) {
-                      return {};
-                    }
-                    return {
-                      style: 'break-before: page; page-break-before: always;',
-                      class: 'page-break',
-                    };
-                  },
-                  parseHTML: element => element.style.breakBefore === 'page' || element.style.pageBreakBefore === 'always',
-                }
-              }
-            }
-          ]
-        },
-        addCommands() {
-          return {
-            setPageBreak: () => ({ commands }: { commands: any }) => {
-              return commands.updateAttributes('paragraph', { pageBreakBefore: true });
-            },
-            unsetPageBreak: () => ({ commands }: { commands: any }) => {
-              return commands.updateAttributes('paragraph', { pageBreakBefore: null });
-            },
-          } as any;
-        }
-      })
+      FontFamily.configure({ types: ['textStyle'] }),
+      FontSize.configure({ types: ['textStyle'] }),
+      LineHeight.configure({ types: ['paragraph', 'heading'] }),
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      Highlight.configure({ multicolor: false }),
+      CustomImage.configure({ inline: false, allowBase64: true }),
+      Placeholder.configure({ placeholder: `Page ${pageIndex + 1} content...` }),
     ],
-    content,
+    content: initialContent,
     onUpdate: ({ editor }) => {
-      onContentChange(editor.getHTML());
+      onUpdate(editor.getHTML());
+    },
+    onFocus: () => {
+      onFocus();
+    },
+    onCreate: ({ editor }) => {
+      if (isActive) onEditorReady(editor);
     },
     editorProps: {
       attributes: {
-        class: 'prose focus:outline-none print-layout',
-        style: 'min-height: 297mm; padding: 20mm; width: 210mm; margin: 2rem auto; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);',
+        class: 'prose focus:outline-none',
+        style: 'min-height: 257mm; padding: 20mm; width: 210mm; background: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); margin: 0 auto;',
       },
       handleClick: (view: any, pos: number, event: MouseEvent) => {
         const node = view.state.doc.nodeAt(pos);
@@ -363,119 +258,152 @@ export default function RichTextEditor({
     },
   });
 
-  // Clear image selection when clicking outside
+  // Notify parent of editor instance if active
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest('.image-controls') && !target.closest('.ProseMirror img')) {
-        setSelectedImage(null);
-      }
-    };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
-      editor.commands.setContent(content);
+    if (editor && isActive) {
+      onEditorReady(editor);
     }
-  }, [content, editor]);
+  }, [isActive, editor, onEditorReady]);
 
-  // Image control functions
+  // Image control functions (Duplicates logic but scoped to this editor)
   const updateImageAttribute = useCallback((attr: string, value: any) => {
     if (!editor || !selectedImage) return;
-
     const { pos } = selectedImage;
-    const node = editor.state.doc.nodeAt(pos);
-    if (!node) return;
-
     editor.chain().focus().setNodeSelection(pos).updateAttributes('image', { [attr]: value }).run();
-
-    // Update selected image reference
     const updatedNode = editor.state.doc.nodeAt(pos);
-    if (updatedNode) {
-      setSelectedImage({ node: updatedNode, pos });
-    }
+    if (updatedNode) setSelectedImage({ node: updatedNode, pos });
   }, [editor, selectedImage]);
 
-  const setImageAlign = (align: 'left' | 'center' | 'right') => {
-    updateImageAttribute('align', align);
+  return (
+    <div className="relative group mb-8">
+      {/* Page Number Indicator */}
+      <div className="absolute top-0 right-[-40px] text-gray-400 text-xs font-medium">
+        P{pageIndex + 1}
+      </div>
+
+      {/* Editor Content */}
+      <div
+        className={`relative transition-all duration-200 ${isActive ? 'ring-2 ring-blue-400 ring-offset-4' : 'hover:ring-2 hover:ring-gray-200 hover:ring-offset-2'}`}
+        onClick={onFocus}
+      >
+        <EditorContent editor={editor} />
+      </div>
+
+      {/* Image Controls Popup (Per Editor) */}
+      {selectedImage && isActive && (
+        <div className="absolute top-4 right-4 z-50 bg-white rounded-lg shadow-xl border p-2 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <button onClick={() => updateImageAttribute('align', 'left')} className="p-1 hover:bg-gray-100 rounded"><AlignLeft className="w-4 h-4" /></button>
+          <button onClick={() => updateImageAttribute('align', 'center')} className="p-1 hover:bg-gray-100 rounded"><AlignCenter className="w-4 h-4" /></button>
+          <button onClick={() => updateImageAttribute('align', 'right')} className="p-1 hover:bg-gray-100 rounded"><AlignRight className="w-4 h-4" /></button>
+          <div className="w-px h-4 bg-gray-300 mx-1" />
+          <button onClick={() => updateImageAttribute('width', 200)} className="text-xs hover:bg-gray-100 p-1 rounded">S</button>
+          <button onClick={() => updateImageAttribute('width', 400)} className="text-xs hover:bg-gray-100 p-1 rounded">M</button>
+          <button onClick={() => updateImageAttribute('width', 600)} className="text-xs hover:bg-gray-100 p-1 rounded">L</button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// --- Main Component ---
+
+export default function RichTextEditor({
+  content,
+  onContentChange,
+  variables,
+  onInsertVariable
+}: RichTextEditorProps) {
+  // State
+  const [pages, setPages] = useState<string[]>(['']);
+  const [activePageIndex, setActivePageIndex] = useState(0);
+  const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load Initial Content
+  useEffect(() => {
+    if (content) {
+      if (content.includes('page-break-delimiter')) {
+        // Split by delimiter if exists
+        const loadedPages = content.split(PAGE_DELIMITER);
+        setPages(loadedPages);
+      } else {
+        // First load or legacy content: treat as single page
+        setPages([content]);
+      }
+    }
+  }, []); // Only run once on mount
+
+  // Sync back to parent (Join pages)
+  const syncContent = (newPages: string[]) => {
+    setPages(newPages);
+    onContentChange(newPages.join(PAGE_DELIMITER));
   };
 
-  const setImageSize = (width: number) => {
-    updateImageAttribute('width', width);
-    setImageWidth(width.toString());
+  const handlePageUpdate = (index: number, html: string) => {
+    const newPages = [...pages];
+    newPages[index] = html;
+    // Debounce or direct update? Direct for now.
+    syncContent(newPages);
   };
 
-  const insertVariable = (variable: string) => {
-    if (!editor) return;
-    // Simple plain text token
-    editor.chain().focus().insertContent(`{${variable}}`).run();
-    onInsertVariable(variable);
+  const addPage = () => {
+    const newPages = [...pages, ''];
+    syncContent(newPages);
+    setActivePageIndex(newPages.length - 1);
   };
 
+  const deletePage = (index: number) => {
+    if (pages.length <= 1) return; // Prevent deleting last page
+    const confirmDelete = window.confirm('Are you sure you want to delete this page?');
+    if (!confirmDelete) return;
+
+    const newPages = pages.filter((_, i) => i !== index);
+    syncContent(newPages);
+    setActivePageIndex(Math.min(index, newPages.length - 1));
+  };
+
+  const movePage = (index: number, direction: 'up' | 'down') => {
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === pages.length - 1) return;
+
+    const newPages = [...pages];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    [newPages[index], newPages[targetIndex]] = [newPages[targetIndex], newPages[index]];
+
+    syncContent(newPages);
+    setActivePageIndex(targetIndex);
+  };
+
+  // Image Upload Handler
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !editor) return;
+    if (!file || !activeEditor) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       alert('Please select an image file');
       return;
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Image size should be less than 5MB');
-      return;
-    }
-
     try {
-      // Resize image to optimize for PDF generation
       const resizedBase64 = await resizeImage(file);
-      editor.chain().focus().setImage({ src: resizedBase64 }).run();
+      activeEditor.chain().focus().setImage({ src: resizedBase64 }).run();
     } catch (error) {
       console.error('Error processing image:', error);
-      alert('Failed to process image. Please try again.');
+      alert('Failed to process image');
     }
 
-    // Reset the input so the same file can be selected again
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const triggerImageUpload = () => {
-    fileInputRef.current?.click();
-  };
+  const triggerImageUpload = () => fileInputRef.current?.click();
 
-  if (!editor) {
-    return (
-      <div className="h-full flex flex-col">
-        <div className="border-b p-2 bg-gray-50 h-12 animate-pulse" />
-        <div className="border-b p-3 bg-blue-50 h-16 animate-pulse" />
-        <div className="flex-1 overflow-auto bg-gray-100 p-8">
-          <div className="a4-page bg-white shadow-lg mx-auto animate-pulse" />
-        </div>
-      </div>
-    );
-  }
-
-  const ToolbarButton = ({
-    onClick,
-    isActive = false,
-    title,
-    children
-  }: {
-    onClick: () => void;
-    isActive?: boolean;
-    title: string;
-    children: React.ReactNode;
-  }) => (
+  // Toolbar Component
+  const ToolbarButton = ({ onClick, isActive = false, title, children, disabled = false }: any) => (
     <button
       type="button"
       onClick={onClick}
-      className={`p-2 rounded text-gray-700 transition-colors ${isActive ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-200'}`}
+      disabled={disabled}
+      className={`p-2 rounded text-gray-700 transition-colors ${isActive ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-200'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       title={title}
     >
       {children}
@@ -486,425 +414,103 @@ export default function RichTextEditor({
 
   return (
     <div className="h-full flex flex-col bg-gray-100">
-      <style jsx global>{`
-        .print-layout {
-            /* Visual page break simulation */
-            /* 297mm (A4) + 10mm (Gap) = 307mm repeat */
-            background-image: linear-gradient(
-                to bottom,
-                white 0mm,
-                white 297mm,
-                #9ca3af 297mm,    /* Gap start (Gray-400) */
-                #9ca3af 307mm     /* Gap end */
-            );
-            background-size: 100% 307mm; /* A4 height + 10mm gap */
-            background-repeat: repeat-y;
-            background-position-y: 0;
-            position: relative;
-        }
-        
-        /* Guide lines for margins (optional, effectively handled by padding) */
-        
-        /* Page break element style in editor */
-        .page-break {
-            margin-top: 2rem;
-            position: relative;
-        }
-        .page-break::before {
-            content: "Page Break";
-            position: absolute;
-            top: -1.5rem;
-            left: 0;
-            right: 0;
-            border-top: 2px dashed #ccc;
-            color: #888;
-            font-size: 0.75rem;
-            text-align: center;
-        }
-      `}</style>
-
-      {/* Toolbar */}
-      <div className="border-b p-2 flex items-center gap-1 flex-wrap bg-gray-50">
-        {/* Undo/Redo */}
-        <ToolbarButton
-          onClick={() => editor.chain().focus().undo().run()}
-          title="Undo (Ctrl+Z)"
-        >
-          <Undo className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => editor.chain().focus().redo().run()}
-          title="Redo (Ctrl+Y)"
-        >
-          <Redo className="w-4 h-4" />
-        </ToolbarButton>
-
-        <Divider />
-
-        {/* Font Family Dropdown */}
+      {/* Sticky Toolbar */}
+      <div className="sticky top-0 z-40 bg-white border-b shadow-sm p-2 flex items-center gap-1 flex-wrap">
+        {/* Font Family */}
         <select
-          onChange={(e) => {
-            if (e.target.value) {
-              (editor.chain().focus() as any).setFontFamily(e.target.value).run();
-            } else {
-              (editor.chain().focus() as any).unsetFontFamily().run();
-            }
-          }}
-          value={editor.getAttributes('textStyle').fontFamily || ''}
-          className="h-8 px-2 text-sm border border-gray-300 rounded bg-white hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          title="Font Family"
+          onChange={(e) => (activeEditor?.chain().focus() as any)?.setFontFamily(e.target.value).run()}
+          value={activeEditor?.getAttributes('textStyle').fontFamily || ''}
+          className="h-8 px-2 text-sm border border-gray-300 rounded bg-white"
         >
-          <option value="">Default</option>
-          <option value="Times New Roman, serif" style={{ fontFamily: 'Times New Roman, serif' }}>Times New Roman</option>
-          <option value="Arial, sans-serif" style={{ fontFamily: 'Arial, sans-serif' }}>Arial</option>
-          <option value="Arial Black, sans-serif" style={{ fontFamily: 'Arial Black, sans-serif' }}>Arial Black</option>
-          <option value="Poppins, sans-serif" style={{ fontFamily: 'Poppins, sans-serif' }}>Poppins</option>
+          <option value="">Font</option>
+          <option value="Times New Roman, serif">Times New Roman</option>
+          <option value="Arial, sans-serif">Arial</option>
+          <option value="Arial Black, sans-serif">Arial Black</option>
+          <option value="Poppins, sans-serif">Poppins</option>
         </select>
 
-        {/* Font Size Dropdown */}
+        {/* Font Size */}
         <select
-          onChange={(e) => {
-            if (e.target.value) {
-              (editor.chain().focus() as any).setFontSize(e.target.value).run();
-            } else {
-              (editor.chain().focus() as any).unsetFontSize().run();
-            }
-          }}
-          value={editor.getAttributes('textStyle').fontSize || ''}
-          className="h-8 px-2 text-sm border border-gray-300 rounded bg-white hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          title="Font Size"
+          onChange={(e) => (activeEditor?.chain().focus() as any)?.setFontSize(e.target.value).run()}
+          value={activeEditor?.getAttributes('textStyle').fontSize || ''}
+          className="h-8 px-2 text-sm border border-gray-300 rounded bg-white w-20"
         >
           <option value="">Size</option>
           <option value="8pt">8</option>
-          <option value="9pt">9</option>
           <option value="10pt">10</option>
           <option value="11pt">11</option>
           <option value="12pt">12</option>
           <option value="14pt">14</option>
-          <option value="16pt">16</option>
           <option value="18pt">18</option>
-          <option value="20pt">20</option>
-          <option value="22pt">22</option>
           <option value="24pt">24</option>
-          <option value="26pt">26</option>
-          <option value="28pt">28</option>
           <option value="36pt">36</option>
-          <option value="48pt">48</option>
-          <option value="72pt">72</option>
-        </select>
-
-        {/* Line Height Dropdown */}
-        <select
-          onChange={(e) => {
-            if (e.target.value) {
-              (editor.chain().focus() as any).setLineHeight(e.target.value).run();
-            } else {
-              (editor.chain().focus() as any).unsetLineHeight().run();
-            }
-          }}
-          value={editor.getAttributes('paragraph').lineHeight || editor.getAttributes('heading').lineHeight || ''}
-          className="h-8 px-2 text-sm border border-gray-300 rounded bg-white hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          title="Line Spacing"
-        >
-          <option value="">Normal</option>
-          <option value="1.0">Single</option>
-          <option value="1.15">1.15</option>
-          <option value="1.5">1.5</option>
-          <option value="2.0">Double</option>
-          <option value="2.5">2.5</option>
-          <option value="3.0">3.0</option>
         </select>
 
         <Divider />
 
-        {/* Text Formatting */}
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          isActive={editor.isActive('bold')}
-          title="Bold (Ctrl+B)"
-        >
-          <Bold className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          isActive={editor.isActive('italic')}
-          title="Italic (Ctrl+I)"
-        >
-          <Italic className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleUnderline().run()}
-          isActive={editor.isActive('underline')}
-          title="Underline (Ctrl+U)"
-        >
-          <UnderlineIcon className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleStrike().run()}
-          isActive={editor.isActive('strike')}
-          title="Strikethrough"
-        >
-          <Strikethrough className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleHighlight().run()}
-          isActive={editor.isActive('highlight')}
-          title="Highlight"
-        >
-          <Highlighter className="w-4 h-4" />
-        </ToolbarButton>
+        <ToolbarButton onClick={() => activeEditor?.chain().focus().toggleBold().run()} isActive={activeEditor?.isActive('bold')} title="Bold"><Bold className="w-4 h-4" /></ToolbarButton>
+        <ToolbarButton onClick={() => activeEditor?.chain().focus().toggleItalic().run()} isActive={activeEditor?.isActive('italic')} title="Italic"><Italic className="w-4 h-4" /></ToolbarButton>
+        <ToolbarButton onClick={() => activeEditor?.chain().focus().toggleUnderline().run()} isActive={activeEditor?.isActive('underline')} title="Underline"><UnderlineIcon className="w-4 h-4" /></ToolbarButton>
+        <ToolbarButton onClick={() => activeEditor?.chain().focus().setTextAlign('left').run()} isActive={activeEditor?.isActive({ textAlign: 'left' })} title="Align Left"><AlignLeft className="w-4 h-4" /></ToolbarButton>
+        <ToolbarButton onClick={() => activeEditor?.chain().focus().setTextAlign('center').run()} isActive={activeEditor?.isActive({ textAlign: 'center' })} title="Align Center"><AlignCenter className="w-4 h-4" /></ToolbarButton>
+        <ToolbarButton onClick={() => activeEditor?.chain().focus().setTextAlign('right').run()} isActive={activeEditor?.isActive({ textAlign: 'right' })} title="Align Right"><AlignRight className="w-4 h-4" /></ToolbarButton>
 
         <Divider />
 
-        {/* Headings */}
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          isActive={editor.isActive('heading', { level: 1 })}
-          title="Heading 1"
-        >
-          <Heading1 className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          isActive={editor.isActive('heading', { level: 2 })}
-          title="Heading 2"
-        >
-          <Heading2 className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-          isActive={editor.isActive('heading', { level: 3 })}
-          title="Heading 3"
-        >
-          <Heading3 className="w-4 h-4" />
-        </ToolbarButton>
+        <ToolbarButton onClick={triggerImageUpload} title="Insert Image"><ImageIcon className="w-4 h-4" /></ToolbarButton>
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
 
-        <Divider />
+        <div className="flex-1" />
 
-        {/* Alignment */}
-        <ToolbarButton
-          onClick={() => editor.chain().focus().setTextAlign('left').run()}
-          isActive={editor.isActive({ textAlign: 'left' })}
-          title="Align Left"
-        >
-          <AlignLeft className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => editor.chain().focus().setTextAlign('center').run()}
-          isActive={editor.isActive({ textAlign: 'center' })}
-          title="Align Center"
-        >
-          <AlignCenter className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => editor.chain().focus().setTextAlign('right').run()}
-          isActive={editor.isActive({ textAlign: 'right' })}
-          title="Align Right"
-        >
-          <AlignRight className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => editor.chain().focus().setTextAlign('justify').run()}
-          isActive={editor.isActive({ textAlign: 'justify' })}
-          title="Justify"
-        >
-          <AlignJustify className="w-4 h-4" />
-        </ToolbarButton>
-
-        <Divider />
-
-        {/* Lists */}
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          isActive={editor.isActive('bulletList')}
-          title="Bullet List"
-        >
-          <List className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          isActive={editor.isActive('orderedList')}
-          title="Numbered List"
-        >
-          <ListOrdered className="w-4 h-4" />
-        </ToolbarButton>
-
-        <Divider />
-
-        {/* Block Elements */}
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          isActive={editor.isActive('blockquote')}
-          title="Block Quote"
-        >
-          <Quote className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => (editor.chain().focus() as any).setPageBreak().run()}
-          title="Insert Page Break"
-        >
-          <FileMinus className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => editor.chain().focus().setHorizontalRule().run()}
-          title="Horizontal Line"
-        >
-          <Minus className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={triggerImageUpload}
-          title="Upload Image"
-        >
-          <ImageIcon className="w-4 h-4" />
-        </ToolbarButton>
-        {/* Hidden file input for image upload */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleImageUpload}
-          className="hidden"
-        />
-
-        <Divider />
-
-        {/* Clear Formatting */}
-        <ToolbarButton
-          onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}
-          title="Clear Formatting"
-        >
-          <RemoveFormatting className="w-4 h-4" />
-        </ToolbarButton>
+        {/* Page Controls */}
+        <div className="flex items-center gap-2 border-l pl-2 bg-gray-50 rounded px-2">
+          <span className="text-xs text-gray-500 font-medium">Page {activePageIndex + 1} of {pages.length}</span>
+          <ToolbarButton onClick={() => deletePage(activePageIndex)} title="Delete Page" disabled={pages.length <= 1}><Trash2 className="w-4 h-4 text-red-500" /></ToolbarButton>
+          <ToolbarButton onClick={addPage} title="Add Page"><Plus className="w-4 h-4 text-green-600" /></ToolbarButton>
+        </div>
       </div>
 
       {/* Variables Sidebar */}
-      <div className="border-b p-3 bg-blue-50">
-        <p className="text-sm font-semibold text-gray-700 mb-2">Available Variables:</p>
-        <div className="flex flex-wrap gap-2">
-          {variables.length === 0 ? (
-            <span className="text-sm text-gray-500">Upload data to see variables</span>
-          ) : (
-            variables.map((variable) => (
-              <button
-                key={variable}
-                onClick={() => insertVariable(variable)}
-                className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm hover:bg-blue-200 transition"
-              >
-                {variable}
-              </button>
-            ))
-          )}
-        </div>
+      <div className="border-b p-2 bg-blue-50 flex items-center gap-2 overflow-x-auto whitespace-nowrap">
+        <span className="text-xs font-bold text-blue-800">Variables:</span>
+        {variables.map(v => (
+          <button
+            key={v}
+            onClick={() => {
+              activeEditor?.chain().focus().insertContent(`{${v}}`).run();
+              onInsertVariable(v);
+            }}
+            className="px-2 py-1 bg-white border border-blue-200 rounded text-xs text-blue-700 hover:bg-blue-100"
+          >
+            {v}
+          </button>
+        ))}
       </div>
 
-      {/* Image Controls Popup */}
-      {selectedImage && (
-        <div className="image-controls absolute top-16 left-1/2 transform -translate-x-1/2 z-50 bg-white rounded-lg shadow-xl border p-3 flex items-center gap-3">
-          <span className="text-xs font-medium text-gray-500">Image:</span>
+      {/* Pages Container */}
+      <div className="flex-1 overflow-auto p-8 flex flex-col items-center gap-8">
+        {pages.map((pageContent, index) => (
+          <SinglePageEditor
+            key={index}
+            pageIndex={index}
+            initialContent={pageContent}
+            isActive={activePageIndex === index}
+            onUpdate={(html) => handlePageUpdate(index, html)}
+            onFocus={() => setActivePageIndex(index)}
+            onEditorReady={(editor) => setActiveEditor(editor)}
+            imageUploadHandler={resizeImage}
+          />
+        ))}
 
-          {/* Alignment */}
-          <div className="flex border rounded overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setImageAlign('left')}
-              className={`p-1.5 ${selectedImage.node.attrs.align === 'left' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
-              title="Align left"
-            >
-              <AlignLeft className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setImageAlign('center')}
-              className={`p-1.5 ${selectedImage.node.attrs.align === 'center' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
-              title="Align center"
-            >
-              <AlignCenter className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setImageAlign('right')}
-              className={`p-1.5 ${selectedImage.node.attrs.align === 'right' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
-              title="Align right"
-            >
-              <AlignRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Size presets */}
-          <div className="flex items-center gap-1 border-l pl-3">
-            <button
-              type="button"
-              onClick={() => setImageSize(100)}
-              className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded"
-              title="Small"
-            >
-              S
-            </button>
-            <button
-              type="button"
-              onClick={() => setImageSize(200)}
-              className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded"
-              title="Medium"
-            >
-              M
-            </button>
-            <button
-              type="button"
-              onClick={() => setImageSize(350)}
-              className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded"
-              title="Large"
-            >
-              L
-            </button>
-            <button
-              type="button"
-              onClick={() => setImageSize(500)}
-              className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded"
-              title="Extra Large"
-            >
-              XL
-            </button>
-          </div>
-
-          {/* Custom width */}
-          <div className="flex items-center gap-1 border-l pl-3">
-            <input
-              type="number"
-              value={imageWidth}
-              onChange={(e) => setImageWidth(e.target.value)}
-              onBlur={() => {
-                const width = parseInt(imageWidth);
-                if (width > 0) setImageSize(width);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const width = parseInt(imageWidth);
-                  if (width > 0) setImageSize(width);
-                }
-              }}
-              className="w-16 px-2 py-1 text-xs border rounded"
-              placeholder="Width"
-            />
-            <span className="text-xs text-gray-400">px</span>
-          </div>
-
-          {/* Close button */}
-          <button
-            type="button"
-            onClick={() => setSelectedImage(null)}
-            className="p-1 hover:bg-gray-100 rounded ml-1"
-            title="Close"
-          >
-            ×
-          </button>
-        </div>
-      )}
-
-      {/* Editor */}
-      <div className="flex-1 overflow-auto bg-gray-100 p-8 relative">
-        <div className="a4-page bg-white shadow-lg mx-auto">
-          <EditorContent editor={editor} />
-        </div>
+        {/* Add Page Button at Bottom */}
+        <button
+          onClick={addPage}
+          className="flex items-center gap-2 px-4 py-3 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition-colors w-[210mm] justify-center border-dashed border-2 border-gray-300"
+        >
+          <Plus className="w-5 h-5" />
+          Add New Page
+        </button>
+        <div className="h-20" /> {/* Bottom spacer */}
       </div>
     </div>
   );
