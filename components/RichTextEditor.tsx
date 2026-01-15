@@ -446,6 +446,21 @@ export default function RichTextEditor({
           <option value="36pt">36</option>
         </select>
 
+        {/* Line Height */}
+        <select
+          onChange={(e) => (activeEditor?.chain().focus() as any)?.setLineHeight(e.target.value).run()}
+          value={(activeEditor?.getAttributes('paragraph') || {}).lineHeight || (activeEditor?.getAttributes('heading') || {}).lineHeight || ''}
+          className="h-8 px-2 text-sm border border-gray-300 rounded bg-white w-24"
+        >
+          <option value="">Spacing</option>
+          <option value="1.0">1.0</option>
+          <option value="1.15">1.15</option>
+          <option value="1.5">1.5</option>
+          <option value="2.0">2.0</option>
+          <option value="2.5">2.5</option>
+          <option value="3.0">3.0</option>
+        </select>
+
         <Divider />
 
         <ToolbarButton onClick={() => activeEditor?.chain().focus().toggleBold().run()} isActive={activeEditor?.isActive('bold')} title="Bold"><Bold className="w-4 h-4" /></ToolbarButton>
