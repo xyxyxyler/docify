@@ -819,28 +819,10 @@ export default function RichTextEditor({
         </div>
       )}
 
-      {/* Editor - Visual Multi-Page Shell */}
+      {/* Editor */}
       <div className="flex-1 overflow-auto bg-gray-100 p-8 relative">
-        <div className="mx-auto" style={{ maxWidth: '210mm' }}>
-          {/* Visual Page 1 */}
-          <div className="visual-page">
-            <div className="page-content-area" />
-          </div>
-
-          {/* Visual Page 2 */}
-          <div className="visual-page">
-            <div className="page-content-area" />
-          </div>
-
-          {/* Visual Page 3 */}
-          <div className="visual-page">
-            <div className="page-content-area" />
-          </div>
-
-          {/* Editor Overlay - spans all pages */}
-          <div className="editor-overlay">
-            <EditorContent editor={editor} />
-          </div>
+        <div className="a4-page bg-white shadow-lg mx-auto">
+          <EditorContent editor={editor} />
         </div>
       </div>
     </div>
