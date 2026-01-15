@@ -189,7 +189,7 @@ export default function PreviewModal({
                   padding: '20mm',
                   overflow: 'hidden',
                   pageBreakAfter: 'always',
-                  marginBottom: index < pages.length - 1 ? '20px' : '0',
+                  marginBottom: index < pages.length - 1 ? '10mm' : '0', // 10mm gap to match editor
                   // Prominent Word-style layered shadows for 3D effect - matching editor
                   boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
                   border: '1px solid #d1d5db' // gray-300

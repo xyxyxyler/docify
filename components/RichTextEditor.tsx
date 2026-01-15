@@ -348,7 +348,7 @@ export default function RichTextEditor({
     editorProps: {
       attributes: {
         class: 'prose focus:outline-none print-layout',
-        style: 'min-height: 297mm; padding: 20mm; width: 210mm; background: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); margin: 0 auto;',
+        style: 'min-height: 297mm; padding: 20mm; width: 210mm; margin: 2rem auto; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);',
       },
       handleClick: (view: any, pos: number, event: MouseEvent) => {
         const node = view.state.doc.nodeAt(pos);
@@ -489,31 +489,22 @@ export default function RichTextEditor({
       <style jsx global>{`
         .print-layout {
             /* Visual page break simulation */
-            background-image: linear-gradient(#e5e7eb .1rem, transparent .1rem);
-            background-size: 100% 297mm;
-            background-position-y: -1px; /* Align with top */
+            /* 297mm (A4) + 10mm (Gap) = 307mm repeat */
+            background-image: linear-gradient(
+                to bottom,
+                white 0mm,
+                white 297mm,
+                #9ca3af 297mm,    /* Gap start (Gray-400) */
+                #9ca3af 307mm     /* Gap end */
+            );
+            background-size: 100% 307mm; /* A4 height + 10mm gap */
+            background-repeat: repeat-y;
+            background-position-y: 0;
             position: relative;
         }
         
-        /* Add a visual separate line for page breaks */
-        .print-layout::after {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 100%;
-            pointer-events: none; 
-            background: repeating-linear-gradient(
-                to bottom,
-                transparent 0,
-                transparent calc(297mm - 1px),
-                #9ca3af calc(297mm - 1px), /* Gray line */
-                #9ca3af 297mm
-            );
-            z-index: 10;
-        }
-
+        /* Guide lines for margins (optional, effectively handled by padding) */
+        
         /* Page break element style in editor */
         .page-break {
             margin-top: 2rem;
