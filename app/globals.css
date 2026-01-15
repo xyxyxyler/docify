@@ -19,35 +19,23 @@ body {
   }
 }
 
-/* A4 Page Styling - Multi-Page Word Style */
+/* A4 Page Styling - Clean Single Page */
 .a4-page {
   width: 210mm;
-  min-height: 297mm;
+  height: 297mm;
   padding: 20mm;
-  margin: 0 auto 20px auto;
+  margin: 0 auto;
   background: white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.1);
   position: relative;
-  /* Allow content to flow - visual page breaks handled by ProseMirror background */
+  overflow: hidden;
 }
 
-/* TipTap Editor Styling - Multi-Page Appearance */
+/* TipTap Editor Styling - Clean and Simple */
 .ProseMirror {
   outline: none;
-  min-height: 257mm;
-  /* Content area height (297mm - 40mm padding) */
+  min-height: 100%;
   color: #1f2937;
-  /* Create visual page separators every 297mm */
-  background-image:
-    linear-gradient(to bottom,
-      transparent 0mm,
-      transparent 257mm,
-      #e5e7eb 257mm,
-      #e5e7eb calc(257mm + 20px),
-      transparent calc(257mm + 20px));
-  background-size: 100% 297mm;
-  background-repeat: repeat-y;
-  background-position: 0 0;
 }
 
 .ProseMirror p {
