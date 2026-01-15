@@ -19,16 +19,14 @@ body {
   }
 }
 
-/* A4 Page Styling - Word-Style with Bottom Indicator */
-.a4-page {
+/* Visual Multi-Page Shell - Word-Style Stacked Pages */
+.visual-page {
   width: 210mm;
   height: 297mm;
-  padding: 20mm;
-  margin: 0 auto;
+  margin: 0 auto 20px auto;
   background: white;
   position: relative;
-  overflow: hidden;
-  /* Prominent Word-style layered shadows matching preview */
+  /* Word-style layered shadows */
   box-shadow:
     0 0 0 1px rgba(0, 0, 0, 0.1),
     0 2px 4px rgba(0, 0, 0, 0.06),
@@ -37,28 +35,35 @@ body {
   border: 1px solid #d1d5db;
 }
 
-/* Page bottom indicator - shows where page ends */
-.a4-page::after {
-  content: '';
-  position: absolute;
-  bottom: 20mm;
-  left: 20mm;
-  right: 20mm;
-  height: 2px;
-  background: linear-gradient(to right,
-      transparent 0%,
-      rgba(220, 38, 38, 0.25) 15%,
-      rgba(220, 38, 38, 0.4) 50%,
-      rgba(220, 38, 38, 0.25) 85%,
-      transparent 100%);
+/* Page content area - defines padding */
+.page-content-area {
+  width: 100%;
+  height: 100%;
+  padding: 20mm;
   pointer-events: none;
-  opacity: 0.6;
 }
 
-/* TipTap Editor Styling - Clean and Simple */
+/* Editor overlay - spans all pages */
+.editor-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 210mm;
+  margin: 0 auto;
+  pointer-events: auto;
+}
+
+/* ProseMirror styling for multi-page */
+.editor-overlay .ProseMirror {
+  padding: 20mm;
+  min-height: calc(297mm * 3);
+  /* Span 3 pages initially */
+}
+
+/* TipTap Editor Styling - Works with overlay */
 .ProseMirror {
   outline: none;
-  min-height: 100%;
   color: #1f2937;
 }
 
