@@ -96,7 +96,7 @@ async function renderHtmlToPdf(
 ): Promise<number> {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   let y = startY;
-  const baseLineHeight = 7;
+  // Removed hardcoded baseLineHeight. Will calculate per element.
   const paragraphSpacing = 4;
   const headingSpacing = 8;
 
@@ -104,11 +104,22 @@ async function renderHtmlToPdf(
     if (node.nodeType === Node.TEXT_NODE) {
       const text = node.textContent?.trim();
       if (text) {
-        const currentLineHeight = baseLineHeight * inheritedLineHeight;
+        // Use default if no context, or valid inherited
+        const currentFontSize = 12;
+        // Browser default line-height is approx 1.2. Tailwind prose is often 1.6-1.75.
+        // Let's use 1.5 as a safe middle ground closer to the editor's look.
+        // 12pt approx 4.23mm. 1.5 * 4.23 = 6.35mm.
+        const lineHeightFactor = inheritedLineHeight === 1.0 ? 1.5 : inheritedLineHeight;
+
+        // Convert pt to mm for calculation (1pt = 0.352778mm)
+        const fontSizeMm = currentFontSize * 0.352778;
+        const currentLineHeight = fontSizeMm * lineHeightFactor;
+
         const lines = pdf.splitTextToSize(text, maxWidth);
         lines.forEach((line: string) => {
           // Check BEFORE adding content if we need a new page
-          if (y + currentLineHeight > 270) {
+          // 297mm - 20mm margin = 277mm limit
+          if (y + currentLineHeight > 277) {
             pdf.addPage();
             y = 20;
           }
@@ -166,7 +177,8 @@ async function renderHtmlToPdf(
         pdf.setFont('helvetica', 'normal');
         break;
       case 'br':
-        y += baseLineHeight;
+        const brHeight = (customFontSize || 12) * 0.352778 * 1.5;
+        y += brHeight;
         return;
       case 'hr':
         y += 5;
@@ -186,7 +198,7 @@ async function renderHtmlToPdf(
         const liLines = pdf.splitTextToSize(liText, maxWidth - 10);
         liLines.forEach((line: string, idx: number) => {
           // Check BEFORE adding content if we need a new page
-          if (y + baseLineHeight > 270) {
+          if (y + ((customFontSize || 12) * 0.352778 * 1.5) > 277) {
             pdf.addPage();
             y = 20;
           }
@@ -194,7 +206,7 @@ async function renderHtmlToPdf(
             pdf.text(bullet, startX, y);
           }
           pdf.text(line, startX + 8, y);
-          y += baseLineHeight;
+          y += ((customFontSize || 12) * 0.352778 * 1.5);
         });
         return; // Don't process children, we handled the text
       case 'blockquote':
@@ -203,7 +215,7 @@ async function renderHtmlToPdf(
         const bqLines = pdf.splitTextToSize(bqText, maxWidth - 10);
         bqLines.forEach((line: string, idx: number) => {
           // Check BEFORE adding content if we need a new page
-          if (y + baseLineHeight > 270) {
+          if (y + ((customFontSize || 12) * 0.352778 * 1.5) > 277) {
             pdf.addPage();
             y = 20;
           }
@@ -211,7 +223,7 @@ async function renderHtmlToPdf(
             pdf.text('|', startX, y);
           }
           pdf.text(line, startX + 5, y);
-          y += baseLineHeight;
+          y += ((customFontSize || 12) * 0.352778 * 1.5);
         });
         pdf.setTextColor(0);
         y += paragraphSpacing;
@@ -244,7 +256,7 @@ async function renderHtmlToPdf(
 
           // Check BEFORE adding image if it fits on current page
           // Add small buffer (5mm) to ensure image doesn't touch bottom margin
-          if (y + imgHeightMm + 5 > 270) {
+          if (y + imgHeightMm + 5 > 277) {
             pdf.addPage();
             y = 20;
           }

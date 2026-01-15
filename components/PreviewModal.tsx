@@ -65,7 +65,8 @@ export default function PreviewModal({
     const pageHeight = 297; // mm (A4 height)
     const padding = 40; // 20mm top + 20mm bottom in mm
     // A4 height in pixels at 96 DPI: 297mm * 3.7795 = 1122.5px
-    // Safe content height = Total height - Padding
+    // Safe content height = Total height - Padding (40mm)
+    // 297mm - 40mm = 257mm usable height
     const maxContentHeight = (pageHeight - padding) * 3.7795275591;
 
     const tempPages: string[] = [];
