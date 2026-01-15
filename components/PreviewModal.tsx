@@ -64,7 +64,9 @@ export default function PreviewModal({
 
     const pageHeight = 297; // mm (A4 height)
     const padding = 40; // 20mm top + 20mm bottom in mm
-    const maxContentHeight = (pageHeight - padding) * 3.7795275591; // Convert mm to pixels (1mm ≈ 3.78px)
+    // A4 height in pixels at 96 DPI: 297mm * 3.7795 = 1122.5px
+    // Safe content height = Total height - Padding
+    const maxContentHeight = (pageHeight - padding) * 3.7795275591;
 
     const tempPages: string[] = [];
     let currentPageContent: HTMLElement[] = [];
@@ -188,15 +190,9 @@ export default function PreviewModal({
                   overflow: 'hidden',
                   pageBreakAfter: 'always',
                   marginBottom: index < pages.length - 1 ? '20px' : '0',
-                  // Prominent Word-style layered shadows for 3D effect
-                  boxShadow: `
-                    0 0 0 1px rgba(0, 0, 0, 0.1),
-                    0 2px 4px rgba(0, 0, 0, 0.06),
-                    0 4px 8px rgba(0, 0, 0, 0.08),
-                    0 8px 16px rgba(0, 0, 0, 0.1),
-                    0 1px 2px rgba(0, 0, 0, 0.05) inset
-                  `,
-                  border: '1px solid #d1d5db'
+                  // Prominent Word-style layered shadows for 3D effect - matching editor
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                  border: '1px solid #d1d5db' // gray-300
                 }}
               >
                 <div

@@ -32,7 +32,8 @@ import {
   Highlighter,
   RemoveFormatting,
   Maximize2,
-  Minimize2
+  Minimize2,
+  FileMinus
 } from 'lucide-react';
 
 interface RichTextEditorProps {
@@ -303,6 +304,42 @@ export default function RichTextEditor({
       Placeholder.configure({
         placeholder: 'Start typing your template here...',
       }),
+      // Custom extension to allow page breaks
+      Extension.create({
+        name: 'pageBreak',
+        addGlobalAttributes() {
+          return [
+            {
+              types: ['paragraph', 'heading'],
+              attributes: {
+                pageBreakBefore: {
+                  default: null,
+                  renderHTML: attributes => {
+                    if (!attributes.pageBreakBefore) {
+                      return {};
+                    }
+                    return {
+                      style: 'break-before: page; page-break-before: always;',
+                      class: 'page-break',
+                    };
+                  },
+                  parseHTML: element => element.style.breakBefore === 'page' || element.style.pageBreakBefore === 'always',
+                }
+              }
+            }
+          ]
+        },
+        addCommands() {
+          return {
+            setPageBreak: () => ({ commands }: { commands: any }) => {
+              return commands.updateAttributes('paragraph', { pageBreakBefore: true });
+            },
+            unsetPageBreak: () => ({ commands }: { commands: any }) => {
+              return commands.updateAttributes('paragraph', { pageBreakBefore: null });
+            },
+          } as any;
+        }
+      })
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -310,9 +347,10 @@ export default function RichTextEditor({
     },
     editorProps: {
       attributes: {
-        class: 'prose max-w-none focus:outline-none p-8',
+        class: 'prose focus:outline-none print-layout',
+        style: 'min-height: 297mm; padding: 20mm; width: 210mm; background: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); margin: 0 auto;',
       },
-      handleClick: (view, pos, event) => {
+      handleClick: (view: any, pos: number, event: MouseEvent) => {
         const node = view.state.doc.nodeAt(pos);
         if (node?.type.name === 'image') {
           setSelectedImage({ node, pos });
@@ -447,7 +485,53 @@ export default function RichTextEditor({
   const Divider = () => <div className="w-px h-6 bg-gray-300 mx-1" />;
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-gray-100">
+      <style jsx global>{`
+        .print-layout {
+            /* Visual page break simulation */
+            background-image: linear-gradient(#e5e7eb .1rem, transparent .1rem);
+            background-size: 100% 297mm;
+            background-position-y: -1px; /* Align with top */
+            position: relative;
+        }
+        
+        /* Add a visual separate line for page breaks */
+        .print-layout::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            pointer-events: none; 
+            background: repeating-linear-gradient(
+                to bottom,
+                transparent 0,
+                transparent calc(297mm - 1px),
+                #9ca3af calc(297mm - 1px), /* Gray line */
+                #9ca3af 297mm
+            );
+            z-index: 10;
+        }
+
+        /* Page break element style in editor */
+        .page-break {
+            margin-top: 2rem;
+            position: relative;
+        }
+        .page-break::before {
+            content: "Page Break";
+            position: absolute;
+            top: -1.5rem;
+            left: 0;
+            right: 0;
+            border-top: 2px dashed #ccc;
+            color: #888;
+            font-size: 0.75rem;
+            text-align: center;
+        }
+      `}</style>
+
       {/* Toolbar */}
       <div className="border-b p-2 flex items-center gap-1 flex-wrap bg-gray-50">
         {/* Undo/Redo */}
@@ -663,6 +747,12 @@ export default function RichTextEditor({
           title="Block Quote"
         >
           <Quote className="w-4 h-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => (editor.chain().focus() as any).setPageBreak().run()}
+          title="Insert Page Break"
+        >
+          <FileMinus className="w-4 h-4" />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().setHorizontalRule().run()}
