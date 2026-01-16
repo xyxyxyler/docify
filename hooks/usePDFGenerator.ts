@@ -2,417 +2,9 @@
 
 import { useCallback } from 'react';
 import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import type { RowData, PDFGenerationOptions } from '@/types';
 import { replaceVariables } from '@/lib/utils';
-
-// Helper to strip HTML tags and decode entities
-function htmlToPlainText(html: string): string {
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  return doc.body.textContent || '';
-}
-
-// Helper to load image and get dimensions
-async function loadImage(src: string): Promise<{ data: string; width: number; height: number } | null> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      // Create canvas to get image data
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        resolve(null);
-        return;
-      }
-
-      // Fill with white background first (fixes PNG transparency issue)
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Draw image on top of white background
-      ctx.drawImage(img, 0, 0);
-
-      // Always output as JPEG to avoid transparency issues and reduce file size
-      const data = canvas.toDataURL('image/jpeg', 0.9);
-
-      resolve({
-        data,
-        width: img.width,
-        height: img.height,
-      });
-    };
-    img.onerror = () => resolve(null);
-    img.src = src;
-  });
-}
-
-// Collect all images from HTML for async loading
-function collectImages(html: string): string[] {
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  const images = doc.querySelectorAll('img');
-  const srcs: string[] = [];
-  images.forEach(img => {
-    const src = img.getAttribute('src');
-    if (src) srcs.push(src);
-  });
-  return srcs;
-}
-
-// Helper to load font file as base64
-async function loadFont(url: string): Promise<string | null> {
-  try {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        // Remove "data:font/ttf;base64," prefix
-        const base64 = (reader.result as string).split(',')[1];
-        resolve(base64);
-      };
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
-    });
-  } catch (e) {
-    console.error('Failed to load font:', url, e);
-    return null;
-  }
-}
-
-// Parse inline styles from element
-function parseInlineStyles(el: Element): { fontSize?: number; lineHeight?: number; marginLeft?: number; marginTop?: number; marginBottom?: number; fontFamily?: string } {
-  const style = el.getAttribute('style');
-  if (!style) return {};
-
-  const result: { fontSize?: number; lineHeight?: number; marginLeft?: number; marginTop?: number; marginBottom?: number; fontFamily?: string } = {};
-
-  // Parse font-size (supports pt and px)
-  const fontSizeMatch = style.match(/font-size:\s*(\d+(?:\.\d+)?)(pt|px)/);
-  if (fontSizeMatch) {
-    const value = parseFloat(fontSizeMatch[1]);
-    const unit = fontSizeMatch[2];
-    // Convert px to pt if needed (1pt = 1.333px at 96 DPI)
-    result.fontSize = unit === 'px' ? value * 0.75 : value;
-  }
-
-  // Parse line-height (unitless multiplier)
-  const lineHeightMatch = style.match(/line-height:\s*(\d+(?:\.\d+)?)/);
-  if (lineHeightMatch) {
-    result.lineHeight = parseFloat(lineHeightMatch[1]);
-  }
-
-  // Parse margins (assume px) - used for indentation and spacing
-  const marginLeftMatch = style.match(/margin-left:\s*(\d+(?:\.\d+)?)(px)?/);
-  if (marginLeftMatch) {
-    result.marginLeft = parseFloat(marginLeftMatch[1]); // Keep as px for now, convert to mm later
-  }
-
-  const marginTopMatch = style.match(/margin-top:\s*(\d+(?:\.\d+)?)em/);
-  if (marginTopMatch) {
-    // 1em approx 12pt approx 4.2mm
-    result.marginTop = parseFloat(marginTopMatch[1]) * 4.2;
-  }
-
-  const marginBottomMatch = style.match(/margin-bottom:\s*(\d+(?:\.\d+)?)em/);
-  if (marginBottomMatch) {
-    result.marginBottom = parseFloat(marginBottomMatch[1]) * 4.2;
-  }
-
-  // Parse font-family
-  const fontFamilyMatch = style.match(/font-family:\s*['"]?([^;'"]+)['"]?/);
-  if (fontFamilyMatch) {
-    result.fontFamily = fontFamilyMatch[1];
-  }
-
-  return result;
-}
-
-// Parse HTML and render to PDF with basic formatting
-async function renderHtmlToPdf(
-  pdf: jsPDF,
-  fullHtml: string,
-  startX: number,
-  startY: number,
-  maxWidth: number,
-  imageCache: Map<string, { data: string; width: number; height: number }>
-): Promise<void> {
-  const PAGE_DELIMITER = '<div class="page-break-delimiter"></div>';
-  const pages = fullHtml.split(PAGE_DELIMITER);
-
-  for (let i = 0; i < pages.length; i++) {
-    const html = pages[i];
-    if (i > 0) {
-      pdf.addPage();
-    }
-
-    // Reset Y for new page
-    let y = startY;
-
-    // Parse this page's content
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-
-    // CSS defaults: p margin is 0.5em. At 12pt (16px), 0.5em = 8px ≈ 2.1mm.
-    const defaultParagraphSpacing = 2.5;
-    const headingSpacing = 6;
-    const pxToMm = 0.264583;
-
-    // Helper to process nodes recursively
-    const processNode = async (node: Node, inheritedLineHeight: number = 1.0, inheritedMarginLeft: number = 0, inheritedFontFamily: string = 'helvetica', inheritedAlignment: string = 'left', inheritedDecoration: string = 'none'): Promise<void> => {
-      if (node.nodeType === Node.TEXT_NODE) {
-        const text = node.textContent?.trim();
-        if (text) {
-          const currentFontSize = 12; // TODO: Inherit size
-          const lineHeightFactor = inheritedLineHeight === 1.0 ? 1.2 : inheritedLineHeight;
-          const fontSizeMm = currentFontSize * 0.352778;
-          const currentLineHeight = fontSizeMm * lineHeightFactor;
-
-          // Calculate available width based on margins
-          const currentMaxWidth = maxWidth - inheritedMarginLeft;
-
-          // Apply Font
-          if (inheritedFontFamily.includes('Omni BSIC Black')) {
-            pdf.setFont('OmniBSIC-Black', 'normal');
-          } else if (inheritedFontFamily.includes('Omni BSIC')) {
-            pdf.setFont('OmniBSIC', 'normal');
-          } else if (inheritedFontFamily.includes('Poppins')) {
-            pdf.setFont('helvetica', 'normal'); // Fallback for now or load Poppins
-          } else {
-            if (inheritedFontFamily !== 'helvetica') {
-              // Fallback
-            }
-          }
-
-          const lines = pdf.splitTextToSize(text, currentMaxWidth);
-          lines.forEach((line: string) => {
-            if (y + currentLineHeight > 277) {
-              pdf.addPage();
-              y = 20;
-            }
-
-            // Alignment Logic
-            let x = startX + inheritedMarginLeft;
-            const lineWidth = pdf.getStringUnitWidth(line) * currentFontSize * 0.352778;
-
-            if (inheritedAlignment === 'center') {
-              x = startX + (currentMaxWidth / 2) - (lineWidth / 2);
-            } else if (inheritedAlignment === 'right') {
-              x = startX + currentMaxWidth - lineWidth;
-            } else if (inheritedAlignment === 'justify') {
-              // simple justification not fully supported in standard text(), falling back to left
-            }
-
-            pdf.text(line, x, y);
-
-            // Underline Logic
-            if (inheritedDecoration.includes('underline')) {
-              const lineY = y + 1; // Slightly below baseline
-              pdf.setLineWidth(0.1);
-              pdf.line(x, lineY, x + lineWidth, lineY);
-            }
-
-            y += currentLineHeight;
-          });
-        }
-        return;
-      }
-
-      if (node.nodeType !== Node.ELEMENT_NODE) return;
-
-      const el = node as Element;
-      const tagName = el.tagName.toLowerCase();
-
-      const inlineStyles = parseInlineStyles(el);
-      const customFontSize = inlineStyles.fontSize;
-      const customLineHeight = inlineStyles.lineHeight || inheritedLineHeight;
-      const customFontFamily = inlineStyles.fontFamily || inheritedFontFamily;
-
-      // Parse alignment and decoration from style OR tag
-      let customAlignment = inheritedAlignment;
-      const textAlignMatch = el.getAttribute('style')?.match(/text-align:\s*([a-z]+)/);
-      if (textAlignMatch) customAlignment = textAlignMatch[1];
-      if (['center', 'right', 'justify'].includes(el.getAttribute('align') || '')) customAlignment = el.getAttribute('align')!;
-
-      let customDecoration = inheritedDecoration;
-      const textDecorationMatch = el.getAttribute('style')?.match(/text-decoration:\s*([a-z]+)/);
-      if (textDecorationMatch) customDecoration = textDecorationMatch[1];
-      if (tagName === 'u') customDecoration = 'underline';
-
-
-      // Calculate margins/indentation
-      const elementMarginLeft = (inlineStyles.marginLeft || 0) * pxToMm;
-      const currentMarginLeft = inheritedMarginLeft + elementMarginLeft;
-
-      if (inlineStyles.marginTop) y += inlineStyles.marginTop;
-
-      // Font Setting Logic
-      let fontName = 'helvetica';
-      let fontStyle = 'normal';
-
-      if (customFontFamily.includes('Omni BSIC') && !customFontFamily.includes('Black')) fontName = 'OmniBSIC';
-      else if (customFontFamily.includes('Omni BSIC Black') || customFontFamily.includes('Arial Black')) fontName = 'OmniBSIC-Black'; // Map Arial Black to heavy font if valid
-      else if (['times new roman', 'times'].includes(customFontFamily.toLowerCase())) fontName = 'times';
-
-      // Styles
-      if (['h1', 'h2', 'h3', 'b', 'strong'].includes(tagName)) fontStyle = 'bold';
-      if (['i', 'em'].includes(tagName)) fontStyle = 'italic';
-
-      // Use bold font file if available instead of style?
-      // For now trust standard logic unless custom font
-      if (fontName.startsWith('OmniBSIC')) fontStyle = 'normal';
-
-      pdf.setFont(fontName, fontStyle);
-      if (customFontSize) pdf.setFontSize(customFontSize);
-
-      switch (tagName) {
-        case 'h1':
-          y += headingSpacing;
-          pdf.setFontSize(customFontSize || 24);
-          pdf.setFont('helvetica', 'bold');
-          break;
-        case 'h2':
-          y += headingSpacing;
-          pdf.setFontSize(customFontSize || 18);
-          pdf.setFont('helvetica', 'bold');
-          break;
-        case 'h3':
-          y += headingSpacing / 2;
-          pdf.setFontSize(customFontSize || 14);
-          pdf.setFont('helvetica', 'bold');
-          break;
-        case 'strong':
-        case 'b':
-          pdf.setFont('helvetica', 'bold');
-          if (customFontSize) pdf.setFontSize(customFontSize);
-          break;
-        case 'em':
-        case 'i':
-          pdf.setFont('helvetica', 'italic');
-          if (customFontSize) pdf.setFontSize(customFontSize);
-          break;
-        case 'p':
-          // Standard paragraph spacing + custom top margin
-          y += defaultParagraphSpacing;
-          pdf.setFontSize(customFontSize || 12);
-          pdf.setFont('helvetica', 'normal');
-          break;
-        case 'br':
-          const brHeight = (customFontSize || 12) * 0.352778 * 1.5;
-          y += brHeight;
-          return;
-        case 'hr':
-          y += 5;
-          pdf.setDrawColor(200);
-          pdf.line(startX, y, startX + maxWidth, y);
-          y += 5;
-          return;
-        case 'ul':
-        case 'ol':
-          y += defaultParagraphSpacing / 2;
-          break;
-        case 'li':
-          const bullet = el.parentElement?.tagName.toLowerCase() === 'ol'
-            ? `${Array.from(el.parentElement.children).indexOf(el) + 1}. `
-            : '• ';
-
-          let listIndent = 5; // Basic indent for bullets
-          // If parent is OL/UL, it might have its own indent, effectively handled by recursion logic if we structured it that way.
-          // For now, assume list items are just indented slightly from current margin.
-
-          const currentX = startX + currentMarginLeft + listIndent;
-          const currentMaxWidth = maxWidth - currentMarginLeft - listIndent;
-
-          const liText = htmlToPlainText(el.innerHTML);
-          const liLines = pdf.splitTextToSize(liText, currentMaxWidth - 5); // Extra 5 for bullet space
-
-          liLines.forEach((line: string, idx: number) => {
-            if (y + ((customFontSize || 12) * 0.352778 * 1.5) > 277) {
-              pdf.addPage();
-              y = 20;
-            }
-            if (idx === 0) {
-              pdf.text(bullet, currentX - 5, y); // Draw bullet to left
-            }
-            pdf.text(line, currentX, y);
-            y += ((customFontSize || 12) * 0.352778 * 1.5);
-          });
-          return;
-        case 'blockquote':
-          // Blockquote logic
-          // .. omitted complex logic, but handle indentation
-          const bqMargin = 10;
-          const bqX = startX + currentMarginLeft + bqMargin;
-          const bqText = htmlToPlainText(el.innerHTML);
-          pdf.text(bqText, bqX, y);
-          y += defaultParagraphSpacing;
-          return;
-        case 'img':
-          const src = el.getAttribute('src');
-          if (src && imageCache.has(src)) {
-            const imgData = imageCache.get(src)!; /* pxToMm defined above */
-            let imgWidthMm = imgData.width * pxToMm;
-            let imgHeightMm = imgData.height * pxToMm;
-
-            if (imgWidthMm > maxWidth) {
-              const scale = maxWidth / imgWidthMm;
-              imgWidthMm = maxWidth;
-              imgHeightMm *= scale;
-            }
-            const maxImgHeight = 120; // Constraint
-            if (imgHeightMm > maxImgHeight) {
-              const scale = maxImgHeight / imgHeightMm;
-              imgHeightMm = maxImgHeight;
-              imgWidthMm *= scale;
-            }
-
-            if (y + imgHeightMm + 5 > 277) {
-              pdf.addPage();
-              y = 20;
-            }
-
-            // Respect alignment if present
-            let imgX = startX + currentMarginLeft;
-            if (customAlignment === 'center') {
-              imgX = startX + (maxWidth / 2) - (imgWidthMm / 2);
-            } else if (customAlignment === 'right') {
-              imgX = startX + maxWidth - imgWidthMm;
-            }
-
-            try {
-              pdf.addImage(imgData.data, 'JPEG', imgX, y, imgWidthMm, imgHeightMm);
-              y += imgHeightMm + defaultParagraphSpacing;
-            } catch (e) {
-              console.error('Failed to add image to PDF:', e);
-            }
-          }
-          return;
-      }
-
-      for (const child of Array.from(node.childNodes)) {
-        await processNode(child, customLineHeight, currentMarginLeft, customFontFamily, customAlignment, customDecoration);
-      }
-
-      // Resets
-      if (['h1', 'h2', 'h3', 'p', 'strong', 'b', 'em', 'i'].includes(tagName)) {
-        pdf.setFontSize(12);
-        pdf.setFont('helvetica', 'normal');
-      }
-
-      // Bottom Spacing (Margin Bottom or default block spacing)
-      if (inlineStyles.marginBottom) {
-        y += inlineStyles.marginBottom;
-      } else if (['h1', 'h2', 'h3', 'p', 'ul', 'ol', 'blockquote'].includes(tagName)) {
-        y += defaultParagraphSpacing;
-      }
-    };
-
-    // Process this page's body
-    for (const child of Array.from(doc.body.childNodes)) {
-      await processNode(child);
-    }
-  }
-}
 
 export function usePDFGenerator() {
   const generatePDF = useCallback(async (
@@ -422,53 +14,76 @@ export function usePDFGenerator() {
   ): Promise<Blob> => {
     const { format = 'a4', orientation = 'portrait' } = options;
 
-    // Replace variables in template with row data
+    // Replace variables in template
     const filledHtml = replaceVariables(templateHtml, row);
 
-    // Pre-load all images
-    const imageSrcs = collectImages(filledHtml);
-    const imageCache = new Map<string, { data: string; width: number; height: number }>();
+    // Split content into pages
+    const PAGE_DELIMITER = '<div class="page-break-delimiter"></div>';
+    const pages = filledHtml.split(PAGE_DELIMITER);
 
-    for (const src of imageSrcs) {
-      const imgData = await loadImage(src);
-      if (imgData) {
-        imageCache.set(src, imgData);
-      }
-    }
-
-    // Load Fonts
-    const fontOmni = await loadFont('/fonts/OmniBSIC.ttf');
-    const fontOmniBlack = await loadFont('/fonts/OmniBSIC-Black.ttf');
-
-    // Create PDF
     const pdf = new jsPDF({
       orientation,
       unit: 'mm',
       format,
     });
 
-    // Register Fonts
-    if (fontOmni) {
-      pdf.addFileToVFS('OmniBSIC.ttf', fontOmni);
-      pdf.addFont('OmniBSIC.ttf', 'OmniBSIC', 'normal');
+    // Create a temporary container for rendering
+    // We must append it to the body to ensure it can access loaded fonts and styles
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.top = '-10000px';
+    container.style.left = '-10000px';
+    // Match the A4 dimensions exactly (210mm x 297mm approx 794px x 1123px at 96DPI)
+    // We use a slightly larger width to ensure no wrapping issues, or match the editor's width.
+    // The .a4-page class in global css is 210mm width.
+    container.style.width = '210mm';
+    // container.style.height = '297mm'; // Let height track content? No, forced page size.
+    document.body.appendChild(container);
+
+    try {
+      for (let i = 0; i < pages.length; i++) {
+        if (i > 0) pdf.addPage();
+
+        // Prepare the page content
+        container.innerHTML = `
+          <div class="a4-page" style="margin: 0; padding: 20mm; overflow: hidden; height: 297mm; box-shadow: none; border: none; background: white;">
+            <div class="ProseMirror" style="height: 100%; outline: none;">
+              ${pages[i]}
+            </div>
+          </div>
+        `;
+
+        // Wait for fonts to be ready (optional but recommended)
+        await document.fonts.ready;
+
+        // Wait a tick for images to load? html2canvas has useCORS option.
+        // If images rely on external URLs, useCORS: true is vital.
+
+        const canvas = await html2canvas(container, {
+          scale: 2, // Higher scale for better quality (2 is usually good enough for print 150-200dpi equivalent)
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff',
+          windowWidth: 794, // Approx 210mm at 96dpi
+          windowHeight: 1123, // Approx 297mm at 96dpi
+        });
+
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        const imgProps = pdf.getImageProperties(imgData);
+
+        // Calculate dimensions to fit PDF page exactly
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      }
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    } finally {
+      // Clean up
+      document.body.removeChild(container);
     }
-    if (fontOmniBlack) {
-      pdf.addFileToVFS('OmniBSIC-Black.ttf', fontOmniBlack);
-      pdf.addFont('OmniBSIC-Black.ttf', 'OmniBSIC-Black', 'normal');
-    }
 
-    // Set default font
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(12);
-    pdf.setTextColor(0, 0, 0);
-
-    // Render HTML content to PDF
-    const margin = 20;
-    const contentWidth = (format === 'a4' ? 210 : 216) - (margin * 2);
-
-    await renderHtmlToPdf(pdf, filledHtml, margin, margin, contentWidth, imageCache);
-
-    // Return as blob
     return pdf.output('blob');
   }, []);
 
