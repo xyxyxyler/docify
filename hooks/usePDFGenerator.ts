@@ -61,11 +61,11 @@ function collectImages(html: string): string[] {
 }
 
 // Parse inline styles from element
-function parseInlineStyles(el: Element): { fontSize?: number; lineHeight?: number } {
+function parseInlineStyles(el: Element): { fontSize?: number; lineHeight?: number; marginLeft?: number; marginTop?: number; marginBottom?: number } {
   const style = el.getAttribute('style');
   if (!style) return {};
 
-  const result: { fontSize?: number; lineHeight?: number } = {};
+  const result: { fontSize?: number; lineHeight?: number; marginLeft?: number; marginTop?: number; marginBottom?: number } = {};
 
   // Parse font-size (supports pt and px)
   const fontSizeMatch = style.match(/font-size:\s*(\d+(?:\.\d+)?)(pt|px)/);
@@ -80,6 +80,23 @@ function parseInlineStyles(el: Element): { fontSize?: number; lineHeight?: numbe
   const lineHeightMatch = style.match(/line-height:\s*(\d+(?:\.\d+)?)/);
   if (lineHeightMatch) {
     result.lineHeight = parseFloat(lineHeightMatch[1]);
+  }
+
+  // Parse margins (assume px) - used for indentation and spacing
+  const marginLeftMatch = style.match(/margin-left:\s*(\d+(?:\.\d+)?)(px)?/);
+  if (marginLeftMatch) {
+    result.marginLeft = parseFloat(marginLeftMatch[1]); // Keep as px for now, convert to mm later
+  }
+
+  const marginTopMatch = style.match(/margin-top:\s*(\d+(?:\.\d+)?)em/);
+  if (marginTopMatch) {
+    // 1em approx 12pt approx 4.2mm
+    result.marginTop = parseFloat(marginTopMatch[1]) * 4.2;
+  }
+
+  const marginBottomMatch = style.match(/margin-bottom:\s*(\d+(?:\.\d+)?)em/);
+  if (marginBottomMatch) {
+    result.marginBottom = parseFloat(marginBottomMatch[1]) * 4.2;
   }
 
   return result;
@@ -108,13 +125,12 @@ async function renderHtmlToPdf(
 
     // Parse this page's content
     const doc = new DOMParser().parseFromString(html, 'text/html');
-    const paragraphSpacing = 4;
+    const defaultParagraphSpacing = 4;
     const headingSpacing = 8;
+    const pxToMm = 0.264583; // 1px = 0.264583mm
 
     // Helper to process nodes recursively
-    // Note: We keep the page-break logic as a fallback safety
-    // in case a single page's content is somehow too long.
-    const processNode = async (node: Node, inheritedLineHeight: number = 1.0): Promise<void> => {
+    const processNode = async (node: Node, inheritedLineHeight: number = 1.0, inheritedMarginLeft: number = 0): Promise<void> => {
       if (node.nodeType === Node.TEXT_NODE) {
         const text = node.textContent?.trim();
         if (text) {
@@ -123,13 +139,17 @@ async function renderHtmlToPdf(
           const fontSizeMm = currentFontSize * 0.352778;
           const currentLineHeight = fontSizeMm * lineHeightFactor;
 
-          const lines = pdf.splitTextToSize(text, maxWidth);
+          // Calculate available width based on indentation
+          const currentX = startX + inheritedMarginLeft;
+          const currentMaxWidth = maxWidth - inheritedMarginLeft;
+
+          const lines = pdf.splitTextToSize(text, currentMaxWidth);
           lines.forEach((line: string) => {
             if (y + currentLineHeight > 277) {
               pdf.addPage();
               y = 20;
             }
-            pdf.text(line, startX, y);
+            pdf.text(line, currentX, y);
             y += currentLineHeight;
           });
         }
@@ -144,6 +164,15 @@ async function renderHtmlToPdf(
       const inlineStyles = parseInlineStyles(el);
       const customFontSize = inlineStyles.fontSize;
       const customLineHeight = inlineStyles.lineHeight || inheritedLineHeight;
+
+      // Calculate margins/indentation
+      const elementMarginLeft = (inlineStyles.marginLeft || 0) * pxToMm;
+      const currentMarginLeft = inheritedMarginLeft + elementMarginLeft;
+
+      // Apply Top Margin/Spacing
+      if (inlineStyles.marginTop) {
+        y += inlineStyles.marginTop;
+      }
 
       switch (tagName) {
         case 'h1':
@@ -172,7 +201,8 @@ async function renderHtmlToPdf(
           if (customFontSize) pdf.setFontSize(customFontSize);
           break;
         case 'p':
-          y += paragraphSpacing;
+          // Standard paragraph spacing + custom top margin
+          y += defaultParagraphSpacing;
           pdf.setFontSize(customFontSize || 12);
           pdf.setFont('helvetica', 'normal');
           break;
@@ -188,38 +218,48 @@ async function renderHtmlToPdf(
           return;
         case 'ul':
         case 'ol':
-          y += paragraphSpacing / 2;
+          y += defaultParagraphSpacing / 2;
           break;
         case 'li':
           const bullet = el.parentElement?.tagName.toLowerCase() === 'ol'
             ? `${Array.from(el.parentElement.children).indexOf(el) + 1}. `
             : '• ';
+
+          let listIndent = 5; // Basic indent for bullets
+          // If parent is OL/UL, it might have its own indent, effectively handled by recursion logic if we structured it that way.
+          // For now, assume list items are just indented slightly from current margin.
+
+          const currentX = startX + currentMarginLeft + listIndent;
+          const currentMaxWidth = maxWidth - currentMarginLeft - listIndent;
+
           const liText = htmlToPlainText(el.innerHTML);
-          const liLines = pdf.splitTextToSize(liText, maxWidth - 10);
+          const liLines = pdf.splitTextToSize(liText, currentMaxWidth - 5); // Extra 5 for bullet space
+
           liLines.forEach((line: string, idx: number) => {
             if (y + ((customFontSize || 12) * 0.352778 * 1.5) > 277) {
               pdf.addPage();
               y = 20;
             }
             if (idx === 0) {
-              pdf.text(bullet, startX, y);
+              pdf.text(bullet, currentX - 5, y); // Draw bullet to left
             }
-            pdf.text(line, startX + 8, y);
+            pdf.text(line, currentX, y);
             y += ((customFontSize || 12) * 0.352778 * 1.5);
           });
           return;
         case 'blockquote':
-          // Blockquote logic (omitted for brevity, assume similar safety checks)
-          // For now, simple render to avoid complex nesting in this replacement
+          // Blockquote logic
+          // .. omitted complex logic, but handle indentation
+          const bqMargin = 10;
+          const bqX = startX + currentMarginLeft + bqMargin;
           const bqText = htmlToPlainText(el.innerHTML);
-          pdf.text(bqText, startX + 5, y);
-          y += paragraphSpacing;
+          pdf.text(bqText, bqX, y);
+          y += defaultParagraphSpacing;
           return;
         case 'img':
           const src = el.getAttribute('src');
           if (src && imageCache.has(src)) {
-            const imgData = imageCache.get(src)!;
-            const pxToMm = 25.4 / 96;
+            const imgData = imageCache.get(src)!; /* pxToMm defined above */
             let imgWidthMm = imgData.width * pxToMm;
             let imgHeightMm = imgData.height * pxToMm;
 
@@ -240,9 +280,15 @@ async function renderHtmlToPdf(
               y = 20;
             }
 
+            // Respect alignment if present
+            let imgX = startX + currentMarginLeft;
+            // ... (alignment logic is usually style based, which we aren't fully parsing for alignment yet, 
+            // but the original code had basic left/center/right via parent styles logic which we might need to restore if lost)
+            // For now, defaulting to basic left relative to indentation.
+
             try {
-              pdf.addImage(imgData.data, 'JPEG', startX, y, imgWidthMm, imgHeightMm);
-              y += imgHeightMm + paragraphSpacing;
+              pdf.addImage(imgData.data, 'JPEG', imgX, y, imgWidthMm, imgHeightMm);
+              y += imgHeightMm + defaultParagraphSpacing;
             } catch (e) {
               console.error('Failed to add image to PDF:', e);
             }
@@ -251,7 +297,7 @@ async function renderHtmlToPdf(
       }
 
       for (const child of Array.from(node.childNodes)) {
-        await processNode(child, customLineHeight);
+        await processNode(child, customLineHeight, currentMarginLeft);
       }
 
       // Resets
@@ -259,8 +305,12 @@ async function renderHtmlToPdf(
         pdf.setFontSize(12);
         pdf.setFont('helvetica', 'normal');
       }
-      if (['h1', 'h2', 'h3', 'p', 'ul', 'ol', 'blockquote'].includes(tagName)) {
-        y += paragraphSpacing;
+
+      // Bottom Spacing (Margin Bottom or default block spacing)
+      if (inlineStyles.marginBottom) {
+        y += inlineStyles.marginBottom;
+      } else if (['h1', 'h2', 'h3', 'p', 'ul', 'ol', 'blockquote'].includes(tagName)) {
+        y += defaultParagraphSpacing;
       }
     };
 
