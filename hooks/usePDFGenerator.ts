@@ -204,6 +204,7 @@ async function renderHtmlToPdf(
       const inlineStyles = parseInlineStyles(el);
       const customFontSize = inlineStyles.fontSize;
       const customLineHeight = inlineStyles.lineHeight || inheritedLineHeight;
+      const customFontFamily = inlineStyles.fontFamily || inheritedFontFamily;
 
       // Calculate margins/indentation
       const elementMarginLeft = (inlineStyles.marginLeft || 0) * pxToMm;
@@ -213,6 +214,24 @@ async function renderHtmlToPdf(
       if (inlineStyles.marginTop) {
         y += inlineStyles.marginTop;
       }
+
+      // Font Setting Logic
+      let fontName = 'helvetica';
+      let fontStyle = 'normal';
+
+      if (customFontFamily === 'Omni BSIC') fontName = 'OmniBSIC';
+      else if (customFontFamily === 'Omni BSIC Black') fontName = 'OmniBSIC-Black';
+      else if (['times new roman', 'times'].includes(customFontFamily.toLowerCase())) fontName = 'times';
+
+      // Styles
+      if (['h1', 'h2', 'h3', 'b', 'strong'].includes(tagName)) fontStyle = 'bold';
+      if (['i', 'em'].includes(tagName)) fontStyle = 'italic';
+
+      // Custom fonts currently only have 'normal' loaded
+      if (fontName.startsWith('OmniBSIC')) fontStyle = 'normal';
+
+      pdf.setFont(fontName, fontStyle);
+      if (customFontSize) pdf.setFontSize(customFontSize);
 
       switch (tagName) {
         case 'h1':
