@@ -34,7 +34,9 @@ import {
   Plus,
   Trash2,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Indent,
+  Outdent
 } from 'lucide-react';
 
 // --- Constants & Types ---
@@ -125,6 +127,107 @@ const LineHeight = Extension.create({
     return {
       setLineHeight: (lineHeight: string) => ({ chain }: any) => chain().updateAttributes('paragraph', { lineHeight }).updateAttributes('heading', { lineHeight }).run(),
       unsetLineHeight: () => ({ chain }: any) => chain().updateAttributes('paragraph', { lineHeight: null }).updateAttributes('heading', { lineHeight: null }).run(),
+    } as any;
+  },
+});
+
+const Indentation = Extension.create({
+  name: 'indentation',
+  addOptions() { return { types: ['paragraph', 'heading', 'bulletList', 'orderedList'], indentLevels: [0, 30, 60, 90, 120, 150, 180, 210] }; },
+  addGlobalAttributes() {
+    return [{
+      types: this.options.types,
+      attributes: {
+        indentLevel: {
+          default: 0,
+          parseHTML: element => {
+            const marginLeft = element.style.marginLeft;
+            return marginLeft ? parseInt(marginLeft, 10) : 0;
+          },
+          renderHTML: attributes => {
+            if (!attributes.indentLevel) return {};
+            return { style: `margin-left: ${attributes.indentLevel}px` };
+          },
+        },
+      },
+    }];
+  },
+  addCommands() {
+    return {
+      indent: () => ({ tr, state, dispatch }: any) => {
+        const { selection } = state;
+        const { from, to } = selection;
+        const indentLevels = this.options.indentLevels;
+
+        tr.doc.nodesBetween(from, to, (node: any, pos: number) => {
+          if (this.options.types.includes(node.type.name)) {
+            const currentLevel = node.attrs.indentLevel || 0;
+            const nextLevel = indentLevels.find((l: number) => l > currentLevel) || currentLevel;
+            tr.setNodeMarkup(pos, undefined, { ...node.attrs, indentLevel: nextLevel });
+            return false;
+          }
+        });
+        if (dispatch) dispatch(tr);
+        return true;
+      },
+      outdent: () => ({ tr, state, dispatch }: any) => {
+        const { selection } = state;
+        const { from, to } = selection;
+        const indentLevels = this.options.indentLevels;
+
+        tr.doc.nodesBetween(from, to, (node: any, pos: number) => {
+          if (this.options.types.includes(node.type.name)) {
+            const currentLevel = node.attrs.indentLevel || 0;
+            const prevLevel = [...indentLevels].reverse().find((l: number) => l < currentLevel) || 0;
+            tr.setNodeMarkup(pos, undefined, { ...node.attrs, indentLevel: prevLevel });
+            return false;
+          }
+        });
+        if (dispatch) dispatch(tr);
+        return true;
+      },
+    } as any;
+  },
+  addKeyboardShortcuts() {
+    return {
+      'Tab': () => this.editor.commands.indent(),
+      'Shift-Tab': () => this.editor.commands.outdent(),
+    };
+  },
+});
+
+const ParagraphSpacing = Extension.create({
+  name: 'paragraphSpacing',
+  addOptions() { return { types: ['paragraph', 'heading'] }; },
+  addGlobalAttributes() {
+    return [{
+      types: this.options.types,
+      attributes: {
+        marginTop: {
+          default: null,
+          parseHTML: element => element.style.marginTop,
+          renderHTML: attributes => {
+            if (!attributes.marginTop) return {};
+            return { style: `margin-top: ${attributes.marginTop}` };
+          },
+        },
+        marginBottom: {
+          default: null,
+          parseHTML: element => element.style.marginBottom,
+          renderHTML: attributes => {
+            if (!attributes.marginBottom) return {};
+            return { style: `margin-bottom: ${attributes.marginBottom}` };
+          },
+        },
+      },
+    }];
+  },
+  addCommands() {
+    return {
+      addSpaceBefore: () => ({ commands }: any) => commands.updateAttributes('paragraph', { marginTop: '1em' }),
+      removeSpaceBefore: () => ({ commands }: any) => commands.updateAttributes('paragraph', { marginTop: '0' }),
+      addSpaceAfter: () => ({ commands }: any) => commands.updateAttributes('paragraph', { marginBottom: '1em' }),
+      removeSpaceAfter: () => ({ commands }: any) => commands.updateAttributes('paragraph', { marginBottom: '0' }),
     } as any;
   },
 });
@@ -225,6 +328,8 @@ const SinglePageEditor = ({
       FontFamily.configure({ types: ['textStyle'] }),
       FontSize.configure({ types: ['textStyle'] }),
       LineHeight.configure({ types: ['paragraph', 'heading'] }),
+      Indentation.configure({ types: ['paragraph', 'heading', 'bulletList', 'orderedList'] }),
+      ParagraphSpacing.configure({ types: ['paragraph', 'heading'] }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Highlight.configure({ multicolor: false }),
       CustomImage.configure({ inline: false, allowBase64: true }),
@@ -450,19 +555,34 @@ export default function RichTextEditor({
           <option value="36pt">36</option>
         </select>
 
-        {/* Line Height */}
+        {/* Line Height & Spacing */}
         <select
-          onChange={(e) => (activeEditor?.chain().focus() as any)?.setLineHeight(e.target.value).run()}
+          onChange={(e) => {
+            const val = e.target.value;
+            if (val === 'addSpaceBefore') (activeEditor?.chain().focus() as any)?.addSpaceBefore().run();
+            else if (val === 'removeSpaceBefore') (activeEditor?.chain().focus() as any)?.removeSpaceBefore().run();
+            else if (val === 'addSpaceAfter') (activeEditor?.chain().focus() as any)?.addSpaceAfter().run();
+            else if (val === 'removeSpaceAfter') (activeEditor?.chain().focus() as any)?.removeSpaceAfter().run();
+            else (activeEditor?.chain().focus() as any)?.setLineHeight(val).run();
+          }}
           value={(activeEditor?.getAttributes('paragraph') || {}).lineHeight || (activeEditor?.getAttributes('heading') || {}).lineHeight || ''}
-          className="h-8 px-2 text-sm border border-gray-300 rounded bg-white w-24"
+          className="h-8 px-2 text-sm border border-gray-300 rounded bg-white w-28"
         >
           <option value="">Spacing</option>
-          <option value="1.0">1.0</option>
-          <option value="1.15">1.15</option>
-          <option value="1.5">1.5</option>
-          <option value="2.0">2.0</option>
-          <option value="2.5">2.5</option>
-          <option value="3.0">3.0</option>
+          <optgroup label="Line Spacing">
+            <option value="1.0">1.0</option>
+            <option value="1.15">1.15</option>
+            <option value="1.5">1.5</option>
+            <option value="2.0">2.0</option>
+            <option value="2.5">2.5</option>
+            <option value="3.0">3.0</option>
+          </optgroup>
+          <optgroup label="Paragraph Spacing">
+            <option value="addSpaceBefore">Add Space Before Paragraph</option>
+            <option value="removeSpaceBefore">Remove Space Before Paragraph</option>
+            <option value="addSpaceAfter">Add Space After Paragraph</option>
+            <option value="removeSpaceAfter">Remove Space After Paragraph</option>
+          </optgroup>
         </select>
 
         <Divider />
@@ -474,6 +594,14 @@ export default function RichTextEditor({
         <ToolbarButton onClick={() => activeEditor?.chain().focus().setTextAlign('center').run()} isActive={activeEditor?.isActive({ textAlign: 'center' })} title="Align Center"><AlignCenter className="w-4 h-4" /></ToolbarButton>
         <ToolbarButton onClick={() => activeEditor?.chain().focus().setTextAlign('right').run()} isActive={activeEditor?.isActive({ textAlign: 'right' })} title="Align Right"><AlignRight className="w-4 h-4" /></ToolbarButton>
         <ToolbarButton onClick={() => activeEditor?.chain().focus().setTextAlign('justify').run()} isActive={activeEditor?.isActive({ textAlign: 'justify' })} title="Align Justify"><AlignJustify className="w-4 h-4" /></ToolbarButton>
+
+        <Divider />
+
+        <ToolbarButton onClick={() => (activeEditor?.chain().focus() as any)?.outdent().run()} title="Outdent"><Outdent className="w-4 h-4" /></ToolbarButton>
+        <ToolbarButton onClick={() => (activeEditor?.chain().focus() as any)?.indent().run()} title="Indent"><Indent className="w-4 h-4" /></ToolbarButton>
+
+        <ToolbarButton onClick={() => activeEditor?.chain().focus().toggleBulletList().run()} isActive={activeEditor?.isActive('bulletList')} title="Bullet List"><List className="w-4 h-4" /></ToolbarButton>
+        <ToolbarButton onClick={() => activeEditor?.chain().focus().toggleOrderedList().run()} isActive={activeEditor?.isActive('orderedList')} title="Ordered List"><ListOrdered className="w-4 h-4" /></ToolbarButton>
 
         <Divider />
 
