@@ -56,17 +56,23 @@ export async function POST(req: NextRequest) {
       }
     });
 
+    // Verify buffer exists
+    if (!buffer) {
+      throw new Error('Buffer generation failed');
+    }
+
     const headers = new Headers();
     headers.set('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     headers.set('Content-Disposition', `attachment; filename="${filename}"`);
 
-    return new NextResponse(buffer as any, {
+    // Use standard Response which handles Buffers/ArrayBuffers natively in modern Node/Edge runtimes
+    return new Response(buffer as any, {
       status: 200,
       headers,
     });
 
   } catch (error) {
     console.error('Word generation error:', error);
-    return NextResponse.json({ error: 'Failed to generate document' }, { status: 500 });
+    return NextResponse.json({ error: String(error) }, { status: 500 });
   }
 }
