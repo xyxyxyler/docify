@@ -148,7 +148,7 @@ export default function DownloadModal({
               <div className="border-t pt-4">
                 <h3 className="text-sm font-medium text-gray-700 mb-3">Or download individually:</h3>
                 <div className="max-h-60 overflow-y-auto space-y-2">
-                  {data.slice(0, 10).map((row, index) => (
+                  {data.map((row, index) => (
                     <button
                       key={index}
                       onClick={() => handleDownloadSingle(index)}
@@ -160,11 +160,6 @@ export default function DownloadModal({
                       </span>
                     </button>
                   ))}
-                  {data.length > 10 && (
-                    <p className="text-sm text-gray-500 text-center py-2">
-                      +{data.length - 10} more documents...
-                    </p>
-                  )}
                 </div>
               </div>
             </>
