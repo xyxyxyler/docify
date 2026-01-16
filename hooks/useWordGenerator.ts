@@ -224,10 +224,44 @@ export function useWordGenerator() {
 
         const docElements = mapDomToDocx(nodes);
 
+        // Post-process: Wrap orphan TextRuns in Paragraphs
+        // The docx Document sections can only contain Block-level elements (Paragraph, Table).
+        // TextRuns must be inside Paragraphs.
+        const finalChildren: any[] = [];
+        let currentRunBuffer: TextRun[] = [];
+
+        docElements.forEach((child) => {
+            if (child instanceof TextRun) {
+                currentRunBuffer.push(child);
+            } else {
+                // If we have pending text runs, flush them into a paragraph
+                if (currentRunBuffer.length > 0) {
+                    finalChildren.push(new Paragraph({ children: [...currentRunBuffer] }));
+                    currentRunBuffer = [];
+                }
+
+                // If the child is a Paragraph (or Table, etc), add it
+                // We double check it's not null/undefined
+                if (child) {
+                    finalChildren.push(child);
+                }
+            }
+        });
+
+        // Flush remaining text runs
+        if (currentRunBuffer.length > 0) {
+            finalChildren.push(new Paragraph({ children: currentRunBuffer }));
+        }
+
+        // Final safeguard: If document is empty, add one empty paragraph so it opens
+        if (finalChildren.length === 0) {
+            finalChildren.push(new Paragraph({ children: [new TextRun("")] }));
+        }
+
         const doc = new Document({
             sections: [{
                 properties: {},
-                children: docElements.filter(e => e instanceof Paragraph), // Filter top-level failures
+                children: finalChildren,
             }],
         });
 
