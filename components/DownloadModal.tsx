@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { X, Download, FileText, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { usePDFGenerator } from '@/hooks/usePDFGenerator';
-import { generateSafeFilename } from '@/lib/utils';
+import { useWordGenerator } from '@/hooks/useWordGenerator';
+import { replaceVariables, generateSafeFilename } from '@/lib/utils';
 import type { RowData } from '@/types';
 import JSZip from 'jszip';
 
@@ -30,6 +31,14 @@ export default function DownloadModal({
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [errorMessage, setErrorMessage] = useState('');
   const { generatePDF } = usePDFGenerator();
+  const { generateWord } = useWordGenerator();
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleWordDownload = async (row: RowData) => {
+    const filenameSource = row[Object.keys(row)[0]] || 'document';
+    const filename = `${filenameSource}.docx`;
+    await generateWord(row, templateHtml, filename);
+  };
 
   if (!isOpen) return null;
 
@@ -149,16 +158,33 @@ export default function DownloadModal({
                 <h3 className="text-sm font-medium text-gray-700 mb-3">Or download individually:</h3>
                 <div className="max-h-60 overflow-y-auto space-y-2">
                   {data.map((row, index) => (
-                    <button
+                    <div
                       key={index}
-                      onClick={() => handleDownloadSingle(index)}
-                      className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 rounded-lg transition"
+                      className="w-full flex items-center justify-between gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg transition group"
                     >
-                      <FileText className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm text-gray-700 truncate">
-                        {getFilenameForRow(row, index)}
-                      </span>
-                    </button>
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <FileText className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm text-gray-700 truncate">
+                          {getFilenameForRow(row, index)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => handleWordDownload(row)}
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                          title="Download Word"
+                        >
+                          <span className="text-xs font-bold px-1 border border-blue-600 rounded">DOCX</span>
+                        </button>
+                        <button
+                          onClick={() => handleDownloadSingle(index)}
+                          className="p-1.5 text-gray-600 hover:bg-gray-100 rounded"
+                          title="Download PDF"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
