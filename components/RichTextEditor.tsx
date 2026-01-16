@@ -546,6 +546,8 @@ export default function RichTextEditor({
           <option value="Arial, sans-serif">Arial</option>
           <option value="Arial Black, sans-serif">Arial Black</option>
           <option value="Poppins, sans-serif">Poppins</option>
+          <option value="'Omni BSIC', sans-serif">Omni BSIC</option>
+          <option value="'Omni BSIC Black', sans-serif">Omni BSIC Black</option>
         </select>
 
         {/* Font Size */}
