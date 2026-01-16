@@ -45,7 +45,12 @@ export function usePDFGenerator() {
         if (i > 0) pdf.addPage();
 
         // Prepare the page content
+        // We inject styles to hide UI indicators (like the red page end line and placeholders)
         container.innerHTML = `
+          <style>
+            .a4-page::after { display: none !important; content: none !important; }
+            .ProseMirror p.is-editor-empty::before { content: none !important; }
+          </style>
           <div class="a4-page" style="margin: 0; padding: 20mm; overflow: hidden; height: 297mm; box-shadow: none; border: none; background: white;">
             <div class="ProseMirror" style="height: 100%; outline: none;">
               ${pages[i]}
