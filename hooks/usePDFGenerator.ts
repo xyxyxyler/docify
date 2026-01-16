@@ -60,12 +60,33 @@ function collectImages(html: string): string[] {
   return srcs;
 }
 
+// Helper to load font file as base64
+async function loadFont(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        // Remove "data:font/ttf;base64," prefix
+        const base64 = (reader.result as string).split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch (e) {
+    console.error('Failed to load font:', url, e);
+    return null;
+  }
+}
+
 // Parse inline styles from element
-function parseInlineStyles(el: Element): { fontSize?: number; lineHeight?: number; marginLeft?: number; marginTop?: number; marginBottom?: number } {
+function parseInlineStyles(el: Element): { fontSize?: number; lineHeight?: number; marginLeft?: number; marginTop?: number; marginBottom?: number; fontFamily?: string } {
   const style = el.getAttribute('style');
   if (!style) return {};
 
-  const result: { fontSize?: number; lineHeight?: number; marginLeft?: number; marginTop?: number; marginBottom?: number } = {};
+  const result: { fontSize?: number; lineHeight?: number; marginLeft?: number; marginTop?: number; marginBottom?: number; fontFamily?: string } = {};
 
   // Parse font-size (supports pt and px)
   const fontSizeMatch = style.match(/font-size:\s*(\d+(?:\.\d+)?)(pt|px)/);
@@ -99,6 +120,12 @@ function parseInlineStyles(el: Element): { fontSize?: number; lineHeight?: numbe
     result.marginBottom = parseFloat(marginBottomMatch[1]) * 4.2;
   }
 
+  // Parse font-family
+  const fontFamilyMatch = style.match(/font-family:\s*['"]?([^;'"]+)['"]?/);
+  if (fontFamilyMatch) {
+    result.fontFamily = fontFamilyMatch[1];
+  }
+
   return result;
 }
 
@@ -130,7 +157,7 @@ async function renderHtmlToPdf(
     const pxToMm = 0.264583; // 1px = 0.264583mm
 
     // Helper to process nodes recursively
-    const processNode = async (node: Node, inheritedLineHeight: number = 1.0, inheritedMarginLeft: number = 0): Promise<void> => {
+    const processNode = async (node: Node, inheritedLineHeight: number = 1.0, inheritedMarginLeft: number = 0, inheritedFontFamily: string = 'helvetica'): Promise<void> => {
       if (node.nodeType === Node.TEXT_NODE) {
         const text = node.textContent?.trim();
         if (text) {
@@ -142,6 +169,19 @@ async function renderHtmlToPdf(
           // Calculate available width based on indentation
           const currentX = startX + inheritedMarginLeft;
           const currentMaxWidth = maxWidth - inheritedMarginLeft;
+
+          // Apply Font
+          if (inheritedFontFamily === 'Omni BSIC') {
+            pdf.setFont('OmniBSIC', 'normal');
+          } else if (inheritedFontFamily === 'Omni BSIC Black') {
+            pdf.setFont('OmniBSIC-Black', 'normal');
+          } else {
+            // Let standard logic handle generic fonts (which might be bold/italic)
+            // We only explicitly set custom fonts here if needed, otherwise parent logic sets it
+            if (inheritedFontFamily !== 'helvetica') {
+              // Future custom fonts
+            }
+          }
 
           const lines = pdf.splitTextToSize(text, currentMaxWidth);
           lines.forEach((line: string) => {
@@ -297,7 +337,7 @@ async function renderHtmlToPdf(
       }
 
       for (const child of Array.from(node.childNodes)) {
-        await processNode(child, customLineHeight, currentMarginLeft);
+        await processNode(child, customLineHeight, currentMarginLeft, customFontFamily);
       }
 
       // Resets
@@ -343,12 +383,26 @@ export function usePDFGenerator() {
       }
     }
 
+    // Load Fonts
+    const fontOmni = await loadFont('/fonts/OmniBSIC.ttf');
+    const fontOmniBlack = await loadFont('/fonts/OmniBSIC-Black.ttf');
+
     // Create PDF
     const pdf = new jsPDF({
       orientation,
       unit: 'mm',
       format,
     });
+
+    // Register Fonts
+    if (fontOmni) {
+      pdf.addFileToVFS('OmniBSIC.ttf', fontOmni);
+      pdf.addFont('OmniBSIC.ttf', 'OmniBSIC', 'normal');
+    }
+    if (fontOmniBlack) {
+      pdf.addFileToVFS('OmniBSIC-Black.ttf', fontOmniBlack);
+      pdf.addFont('OmniBSIC-Black.ttf', 'OmniBSIC-Black', 'normal');
+    }
 
     // Set default font
     pdf.setFont('helvetica', 'normal');
