@@ -190,8 +190,18 @@ const Indentation = Extension.create({
   },
   addKeyboardShortcuts() {
     return {
-      'Tab': () => (this.editor.commands as any).indent(),
-      'Shift-Tab': () => (this.editor.commands as any).outdent(),
+      'Tab': () => {
+        if (this.editor.isActive('bulletList') || this.editor.isActive('orderedList')) {
+          return this.editor.commands.sinkListItem('listItem');
+        }
+        return (this.editor.commands as any).indent();
+      },
+      'Shift-Tab': () => {
+        if (this.editor.isActive('bulletList') || this.editor.isActive('orderedList')) {
+          return this.editor.commands.liftListItem('listItem');
+        }
+        return (this.editor.commands as any).outdent();
+      },
     };
   },
 });
