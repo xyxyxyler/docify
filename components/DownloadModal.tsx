@@ -46,7 +46,7 @@ export default function DownloadModal({
     return generateSafeFilename(row, filenamePattern, projectName, index);
   };
 
-  const handleDownloadAll = async () => {
+  const handleDownloadAll = async (format: 'pdf' | 'word') => {
     setStatus('generating');
     setProgress({ current: 0, total: data.length });
     setErrorMessage('');
@@ -56,9 +56,27 @@ export default function DownloadModal({
 
       for (let i = 0; i < data.length; i++) {
         const row = data[i];
-        const blob = await generatePDF(row, templateHtml);
-        const filename = getFilenameForRow(row, i);
-        zip.file(filename, blob);
+        const baseFilename = getFilenameForRow(row, i);
+
+        if (format === 'pdf') {
+          const blob = await generatePDF(row, templateHtml);
+          zip.file(`${baseFilename}.pdf`, blob);
+        } else {
+          // Generate Word Blob
+          // Re-use logic from hooks but we need the raw blob here, hook downloads it.
+          // Let's call API directly here for simplicity or refactor hook to return blob.
+          // Calling API directly is cleaner for "bulk" op inside modal.
+          const filledHtml = replaceVariables(templateHtml, row);
+          const response = await fetch('/api/generate-word', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ html: filledHtml, filename: `${baseFilename}.docx` }),
+          });
+          if (!response.ok) throw new Error('Failed to generate Word doc');
+          const blob = await response.blob();
+          zip.file(`${baseFilename}.docx`, blob);
+        }
+
         setProgress({ current: i + 1, total: data.length });
       }
 
@@ -67,7 +85,7 @@ export default function DownloadModal({
       const url = URL.createObjectURL(zipBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${projectName}_documents.zip`;
+      a.download = `${projectName}_${format === 'pdf' ? 'documents' : 'word_docs'}.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -75,8 +93,8 @@ export default function DownloadModal({
 
       setStatus('complete');
     } catch (error) {
-      console.error('PDF generation error:', error);
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to generate PDFs');
+      console.error('Generation error:', error);
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to generate files');
       setStatus('error');
     }
   };
@@ -144,13 +162,20 @@ export default function DownloadModal({
         <div className="p-6">
           {status === 'idle' && (
             <>
-              <div className="mb-6">
+              <div className="mb-6 grid grid-cols-2 gap-3">
                 <button
-                  onClick={handleDownloadAll}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
+                  onClick={() => handleDownloadAll('pdf')}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
                 >
                   <Download className="w-5 h-5" />
-                  Download All as ZIP
+                  Download ZIP (PDF)
+                </button>
+                <button
+                  onClick={() => handleDownloadAll('word')}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+                >
+                  <FileText className="w-5 h-5" />
+                  Download ZIP (Word)
                 </button>
               </div>
 
@@ -195,7 +220,7 @@ export default function DownloadModal({
             <div className="py-8 text-center">
               <Loader2 className="w-12 h-12 animate-spin text-green-600 mx-auto mb-4" />
               <p className="text-lg font-medium text-gray-900 mb-2">
-                Generating PDFs...
+                Generating documents...
               </p>
               <p className="text-sm text-gray-500 mb-4">
                 {progress.current} of {progress.total} complete
