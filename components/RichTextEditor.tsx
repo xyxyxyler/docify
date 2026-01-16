@@ -190,8 +190,8 @@ const Indentation = Extension.create({
   },
   addKeyboardShortcuts() {
     return {
-      'Tab': () => this.editor.commands.indent(),
-      'Shift-Tab': () => this.editor.commands.outdent(),
+      'Tab': () => (this.editor.commands as any).indent(),
+      'Shift-Tab': () => (this.editor.commands as any).outdent(),
     };
   },
 });
