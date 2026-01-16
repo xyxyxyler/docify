@@ -152,8 +152,13 @@ async function renderHtmlToPdf(
 
     // Parse this page's content
     const doc = new DOMParser().parseFromString(html, 'text/html');
-    const defaultParagraphSpacing = 4;
-    const headingSpacing = 8;
+
+    // CSS defaults: p margin is 0.5em. At 12pt (16px), 0.5em = 8px ≈ 2.1mm.
+    const defaultParagraphSpacing = 2.5;
+
+    // CSS defaults: h1 margin 0.67em (approx 5.6mm at 24pt), h2 0.83em (approx 5.2mm at 18pt)
+    const headingSpacing = 6;
+
     const pxToMm = 0.264583; // 1px = 0.264583mm
 
     // Helper to process nodes recursively
@@ -162,8 +167,9 @@ async function renderHtmlToPdf(
         const text = node.textContent?.trim();
         if (text) {
           const currentFontSize = 12;
-          const lineHeightFactor = inheritedLineHeight === 1.0 ? 1.5 : inheritedLineHeight;
-          const fontSizeMm = currentFontSize * 0.352778;
+          // Standard browser line-height is approx 1.15 to 1.2, not 1.5
+          const lineHeightFactor = inheritedLineHeight === 1.0 ? 1.2 : inheritedLineHeight;
+          const fontSizeMm = currentFontSize * 0.352778; // 1pt = 0.352778mm
           const currentLineHeight = fontSizeMm * lineHeightFactor;
 
           // Calculate available width based on indentation
