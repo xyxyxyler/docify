@@ -473,6 +473,7 @@ export default function RichTextEditor({
         <ToolbarButton onClick={() => activeEditor?.chain().focus().setTextAlign('left').run()} isActive={activeEditor?.isActive({ textAlign: 'left' })} title="Align Left"><AlignLeft className="w-4 h-4" /></ToolbarButton>
         <ToolbarButton onClick={() => activeEditor?.chain().focus().setTextAlign('center').run()} isActive={activeEditor?.isActive({ textAlign: 'center' })} title="Align Center"><AlignCenter className="w-4 h-4" /></ToolbarButton>
         <ToolbarButton onClick={() => activeEditor?.chain().focus().setTextAlign('right').run()} isActive={activeEditor?.isActive({ textAlign: 'right' })} title="Align Right"><AlignRight className="w-4 h-4" /></ToolbarButton>
+        <ToolbarButton onClick={() => activeEditor?.chain().focus().setTextAlign('justify').run()} isActive={activeEditor?.isActive({ textAlign: 'justify' })} title="Align Justify"><AlignJustify className="w-4 h-4" /></ToolbarButton>
 
         <Divider />
 
