@@ -155,37 +155,32 @@ async function renderHtmlToPdf(
 
     // CSS defaults: p margin is 0.5em. At 12pt (16px), 0.5em = 8px ≈ 2.1mm.
     const defaultParagraphSpacing = 2.5;
-
-    // CSS defaults: h1 margin 0.67em (approx 5.6mm at 24pt), h2 0.83em (approx 5.2mm at 18pt)
     const headingSpacing = 6;
-
-    const pxToMm = 0.264583; // 1px = 0.264583mm
+    const pxToMm = 0.264583;
 
     // Helper to process nodes recursively
-    const processNode = async (node: Node, inheritedLineHeight: number = 1.0, inheritedMarginLeft: number = 0, inheritedFontFamily: string = 'helvetica'): Promise<void> => {
+    const processNode = async (node: Node, inheritedLineHeight: number = 1.0, inheritedMarginLeft: number = 0, inheritedFontFamily: string = 'helvetica', inheritedAlignment: string = 'left', inheritedDecoration: string = 'none'): Promise<void> => {
       if (node.nodeType === Node.TEXT_NODE) {
         const text = node.textContent?.trim();
         if (text) {
-          const currentFontSize = 12;
-          // Standard browser line-height is approx 1.15 to 1.2, not 1.5
+          const currentFontSize = 12; // TODO: Inherit size
           const lineHeightFactor = inheritedLineHeight === 1.0 ? 1.2 : inheritedLineHeight;
-          const fontSizeMm = currentFontSize * 0.352778; // 1pt = 0.352778mm
+          const fontSizeMm = currentFontSize * 0.352778;
           const currentLineHeight = fontSizeMm * lineHeightFactor;
 
-          // Calculate available width based on indentation
-          const currentX = startX + inheritedMarginLeft;
+          // Calculate available width based on margins
           const currentMaxWidth = maxWidth - inheritedMarginLeft;
 
           // Apply Font
-          if (inheritedFontFamily === 'Omni BSIC') {
-            pdf.setFont('OmniBSIC', 'normal');
-          } else if (inheritedFontFamily === 'Omni BSIC Black') {
+          if (inheritedFontFamily.includes('Omni BSIC Black')) {
             pdf.setFont('OmniBSIC-Black', 'normal');
+          } else if (inheritedFontFamily.includes('Omni BSIC')) {
+            pdf.setFont('OmniBSIC', 'normal');
+          } else if (inheritedFontFamily.includes('Poppins')) {
+            pdf.setFont('helvetica', 'normal'); // Fallback for now or load Poppins
           } else {
-            // Let standard logic handle generic fonts (which might be bold/italic)
-            // We only explicitly set custom fonts here if needed, otherwise parent logic sets it
             if (inheritedFontFamily !== 'helvetica') {
-              // Future custom fonts
+              // Fallback
             }
           }
 
@@ -195,7 +190,28 @@ async function renderHtmlToPdf(
               pdf.addPage();
               y = 20;
             }
-            pdf.text(line, currentX, y);
+
+            // Alignment Logic
+            let x = startX + inheritedMarginLeft;
+            const lineWidth = pdf.getStringUnitWidth(line) * currentFontSize * 0.352778;
+
+            if (inheritedAlignment === 'center') {
+              x = startX + (currentMaxWidth / 2) - (lineWidth / 2);
+            } else if (inheritedAlignment === 'right') {
+              x = startX + currentMaxWidth - lineWidth;
+            } else if (inheritedAlignment === 'justify') {
+              // simple justification not fully supported in standard text(), falling back to left
+            }
+
+            pdf.text(line, x, y);
+
+            // Underline Logic
+            if (inheritedDecoration.includes('underline')) {
+              const lineY = y + 1; // Slightly below baseline
+              pdf.setLineWidth(0.1);
+              pdf.line(x, lineY, x + lineWidth, lineY);
+            }
+
             y += currentLineHeight;
           });
         }
@@ -212,28 +228,38 @@ async function renderHtmlToPdf(
       const customLineHeight = inlineStyles.lineHeight || inheritedLineHeight;
       const customFontFamily = inlineStyles.fontFamily || inheritedFontFamily;
 
+      // Parse alignment and decoration from style OR tag
+      let customAlignment = inheritedAlignment;
+      const textAlignMatch = el.getAttribute('style')?.match(/text-align:\s*([a-z]+)/);
+      if (textAlignMatch) customAlignment = textAlignMatch[1];
+      if (['center', 'right', 'justify'].includes(el.getAttribute('align') || '')) customAlignment = el.getAttribute('align')!;
+
+      let customDecoration = inheritedDecoration;
+      const textDecorationMatch = el.getAttribute('style')?.match(/text-decoration:\s*([a-z]+)/);
+      if (textDecorationMatch) customDecoration = textDecorationMatch[1];
+      if (tagName === 'u') customDecoration = 'underline';
+
+
       // Calculate margins/indentation
       const elementMarginLeft = (inlineStyles.marginLeft || 0) * pxToMm;
       const currentMarginLeft = inheritedMarginLeft + elementMarginLeft;
 
-      // Apply Top Margin/Spacing
-      if (inlineStyles.marginTop) {
-        y += inlineStyles.marginTop;
-      }
+      if (inlineStyles.marginTop) y += inlineStyles.marginTop;
 
       // Font Setting Logic
       let fontName = 'helvetica';
       let fontStyle = 'normal';
 
-      if (customFontFamily === 'Omni BSIC') fontName = 'OmniBSIC';
-      else if (customFontFamily === 'Omni BSIC Black') fontName = 'OmniBSIC-Black';
+      if (customFontFamily.includes('Omni BSIC') && !customFontFamily.includes('Black')) fontName = 'OmniBSIC';
+      else if (customFontFamily.includes('Omni BSIC Black') || customFontFamily.includes('Arial Black')) fontName = 'OmniBSIC-Black'; // Map Arial Black to heavy font if valid
       else if (['times new roman', 'times'].includes(customFontFamily.toLowerCase())) fontName = 'times';
 
       // Styles
       if (['h1', 'h2', 'h3', 'b', 'strong'].includes(tagName)) fontStyle = 'bold';
       if (['i', 'em'].includes(tagName)) fontStyle = 'italic';
 
-      // Custom fonts currently only have 'normal' loaded
+      // Use bold font file if available instead of style?
+      // For now trust standard logic unless custom font
       if (fontName.startsWith('OmniBSIC')) fontStyle = 'normal';
 
       pdf.setFont(fontName, fontStyle);
@@ -347,9 +373,11 @@ async function renderHtmlToPdf(
 
             // Respect alignment if present
             let imgX = startX + currentMarginLeft;
-            // ... (alignment logic is usually style based, which we aren't fully parsing for alignment yet, 
-            // but the original code had basic left/center/right via parent styles logic which we might need to restore if lost)
-            // For now, defaulting to basic left relative to indentation.
+            if (customAlignment === 'center') {
+              imgX = startX + (maxWidth / 2) - (imgWidthMm / 2);
+            } else if (customAlignment === 'right') {
+              imgX = startX + maxWidth - imgWidthMm;
+            }
 
             try {
               pdf.addImage(imgData.data, 'JPEG', imgX, y, imgWidthMm, imgHeightMm);
@@ -362,7 +390,7 @@ async function renderHtmlToPdf(
       }
 
       for (const child of Array.from(node.childNodes)) {
-        await processNode(child, customLineHeight, currentMarginLeft, customFontFamily);
+        await processNode(child, customLineHeight, currentMarginLeft, customFontFamily, customAlignment, customDecoration);
       }
 
       // Resets
