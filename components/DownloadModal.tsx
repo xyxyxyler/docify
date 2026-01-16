@@ -62,18 +62,8 @@ export default function DownloadModal({
           const blob = await generatePDF(row, templateHtml);
           zip.file(`${baseFilename}.pdf`, blob);
         } else {
-          // Generate Word Blob
-          // Re-use logic from hooks but we need the raw blob here, hook downloads it.
-          // Let's call API directly here for simplicity or refactor hook to return blob.
-          // Calling API directly is cleaner for "bulk" op inside modal.
-          const filledHtml = replaceVariables(templateHtml, row);
-          const response = await fetch('/api/generate-word', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ html: filledHtml, filename: `${baseFilename}.docx` }),
-          });
-          if (!response.ok) throw new Error('Failed to generate Word doc');
-          const blob = await response.blob();
+          // Generate Word Blob using client-side hook
+          const blob = await generateWord(row, templateHtml, `${baseFilename}.docx`);
           zip.file(`${baseFilename}.docx`, blob);
         }
 
